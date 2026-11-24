@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🛵 ¡Moto Aventuras! - Juegos para Niños 🌟</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛵</text></svg>">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Barra de herramientas superior -->
+        <header id="top-bar">
+            <button id="btn-home" class="top-btn" title="Volver al Menú">
+                <span>🏠 Menú</span>
+            </button>
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-qr" class="top-btn" title="Jugar en Tablet o Celular" style="background: #e8f5e9; border-color: #4caf50; color: #2e7d32;">
+                    <span>📲 En Tablet</span>
+                </button>
+                <button id="btn-sound" class="top-btn" title="Activar/Silenciar Sonido">
+                    <span id="sound-icon">🔊</span> <span id="sound-text">Sonido</span>
+                </button>
+                <button id="btn-fullscreen" class="top-btn" title="Pantalla Completa">
+                    <span>⛶</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Modal QR para conectar Tablet / Celular -->
+        <div id="qr-modal" class="modal-overlay" style="display: none;">
+            <div class="qr-modal-card">
+                <button id="btn-close-qr" class="btn-close-modal">✕</button>
+                <h2>📲 ¡Jugar en Tablet o Celular! 🎮</h2>
+                <p>Apunta la cámara de tu tablet o celular aquí para abrir el juego al instante:</p>
+                <div class="qr-box">
+                    <img src="qr.png" alt="Código QR del juego" width="220" height="220">
+                </div>
+                <div class="url-badge">
+                    <span>O escribe en el navegador:</span>
+                    <strong>http://192.168.1.85:8080</strong>
+                </div>
+                <p class="qr-hint">💡 Recuerda conectar la tablet a la misma red Wi-Fi de tu casa.</p>
+            </div>
+        </div>
+
+        <!-- Canvas donde se dibuja el juego -->
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Pantalla de Menú Principal -->
+        <div id="menu-screen">
+            <div class="title-container">
+                <h1>🛵 ¡MOTO AVENTURAS! 🌟</h1>
+                <p>¡Elige tu juego favorito y a divertirte!</p>
+            </div>
+
+            <!-- Selector de Juegos -->
+            <div class="games-grid">
+                <!-- Juego 1: Colinas y Saltos -->
+                <div class="game-card" id="card-hills">
+                    <div class="card-icon">🏔️🛵</div>
+                    <h2>Colinas y Saltos</h2>
+                    <p>Acelera, frena, haz saltos en las montañas y llega a la meta sin caerte.</p>
+                    <div class="play-badge">¡JUGAR AHORA! ▶</div>
+                </div>
+
+                <!-- Juego 2: Gran Premio de F1 de Chile -->
+                <div class="game-card" id="card-lanes">
+                    <div class="card-icon">🏎️🇨🇱</div>
+                    <h2>Gran Premio de Chile</h2>
+                    <p>¡Carrera de 1 minuto en Atacama, los Andes y el Sur! Sube al podio (1º, 2º o 3º) para avanzar de pista.</p>
+                    <div class="play-badge">¡A CORRER! ▶</div>
+                </div>
+            </div>
+
+            <!-- Personalización: Piloto y Color de la Moto -->
+            <div class="customization-section">
+                <!-- Elegir Piloto -->
+                <div class="cust-group">
+                    <span class="cust-label">Elige tu Piloto:</span>
+                    <div class="options-row" id="riders-container">
+                        <button class="rider-btn active" data-rider="perrito" title="Perrito">🐶</button>
+                        <button class="rider-btn" data-rider="gatito" title="Gatito">🐱</button>
+                        <button class="rider-btn" data-rider="dino" title="Dino">🦖</button>
+                        <button class="rider-btn" data-rider="osito" title="Osito">🐻</button>
+                    </div>
+                </div>
+
+                <!-- Elegir Color de la Moto -->
+                <div class="cust-group">
+                    <span class="cust-label">Color de tu Moto:</span>
+                    <div class="options-row" id="colors-container">
+                        <button class="color-btn active" data-color="#FF3B30" style="background:#FF3B30;" title="Rojo"></button>
+                        <button class="color-btn" data-color="#007AFF" style="background:#007AFF;" title="Azul"></button>
+                        <button class="color-btn" data-color="#34C759" style="background:#34C759;" title="Verde"></button>
+                        <button class="color-btn" data-color="#FFCC00" style="background:#FFCC00;" title="Amarillo"></button>
+                        <button class="color-btn" data-color="#FF2D55" style="background:#FF2D55;" title="Rosa"></button>
+                        <button class="color-btn" data-color="#FF9500" style="background:#FF9500;" title="Naranja"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controles Táctiles en Pantalla para Colinas (Juego 1) -->
+        <div id="controls-hills" class="touch-controls" style="display: none;">
+            <div class="controls-left">
+                <button id="btn-brake" class="big-btn btn-brake">
+                    🛑
+                    <span>Frenar</span>
+                </button>
+                <button id="btn-horn" class="big-btn btn-horn">
+                    📯
+                    <span>Bocina</span>
+                </button>
+            </div>
+            <div class="controls-right">
+                <button id="btn-jump" class="big-btn btn-jump">
+                    🚀
+                    <span>Salto</span>
+                </button>
+                <button id="btn-gas" class="big-btn btn-gas">
+                    🟢
+                    <span>Acelerar</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Controles Táctiles en Pantalla para Carrera de F1 (Juego 2) -->
+        <div id="controls-lanes" class="touch-controls" style="display: none;">
+            <div class="controls-left">
+                <button id="btn-lane-left" class="big-btn btn-dir" title="Izquierda">
+                    ⬅️
+                </button>
+            </div>
+            <div class="controls-right">
+                <button id="btn-lane-right" class="big-btn btn-dir" title="Derecha">
+                    ➡️
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts del Juego -->
+    <script src="js/audio.js"></script>
+    <script src="js/characters.js"></script>
+    <script src="js/game-hills.js"></script>
+    <script src="js/game-lanes.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,465 @@
+/* css/style.css - Estilos divertidos para niños de 4 años */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Arial Rounded MT Bold', sans-serif;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    touch-action: manipulation;
+}
+
+#app-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    max-width: 1200px;
+    max-height: 800px;
+    background: #ffffff;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+    border-radius: 24px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Pantalla del Juego (Canvas) */
+#game-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: #87CEEB;
+}
+
+/* Barra Superior de Controles (Volver, Sonido, Pantalla Completa) */
+#top-bar {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.top-btn {
+    pointer-events: auto;
+    background: #ffffff;
+    border: 3px solid #ffcc00;
+    border-radius: 50px;
+    padding: 8px 18px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.1s, background-color 0.15s;
+}
+
+.top-btn:active {
+    transform: scale(0.92);
+}
+
+/* MENU PRINCIPAL */
+#menu-screen {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #68d8d6 0%, #07b1ca 100%);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 25px 20px;
+    overflow-y: auto;
+}
+
+.title-container {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.title-container h1 {
+    font-size: 2.8rem;
+    color: #ffffff;
+    text-shadow: 3px 3px 0 #ff5722, 6px 6px 0 rgba(0,0,0,0.2);
+    letter-spacing: 1px;
+    animation: bounce 2s infinite alternate ease-in-out;
+}
+
+@keyframes bounce {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-8px); }
+}
+
+.title-container p {
+    font-size: 1.3rem;
+    color: #fff9a6;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Selector de Juegos */
+.games-grid {
+    display: flex;
+    gap: 25px;
+    width: 100%;
+    max-width: 850px;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.game-card {
+    flex: 1;
+    background: #ffffff;
+    border-radius: 25px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    border: 5px solid #ffcc00;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.game-card:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 15px 25px rgba(0,0,0,0.25);
+}
+
+.game-card:active {
+    transform: scale(0.96);
+}
+
+.card-icon {
+    font-size: 4.5rem;
+    margin-bottom: 10px;
+    filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.15));
+}
+
+.game-card h2 {
+    font-size: 1.6rem;
+    color: #ff3b30;
+    margin-bottom: 8px;
+}
+
+.game-card p {
+    font-size: 1.05rem;
+    color: #555;
+    margin-bottom: 14px;
+}
+
+.play-badge {
+    background: #34c759;
+    color: white;
+    font-size: 1.3rem;
+    font-weight: bold;
+    padding: 10px 24px;
+    border-radius: 30px;
+    box-shadow: 0 4px 10px rgba(52, 199, 89, 0.4);
+}
+
+/* Personalización: Piloto y Color */
+.customization-section {
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 20px;
+    padding: 15px 25px;
+    width: 100%;
+    max-width: 850px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    border: 3px solid #ffffff;
+}
+
+.cust-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.cust-label {
+    font-size: 1.15rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.options-row {
+    display: flex;
+    gap: 12px;
+}
+
+.rider-btn {
+    background: #f0f0f0;
+    border: 3px solid #ccc;
+    border-radius: 18px;
+    padding: 8px 12px;
+    font-size: 1.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.rider-btn.active {
+    background: #ffecb3;
+    border-color: #ff9800;
+    transform: scale(1.15);
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+}
+
+.color-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 3px solid #ffffff;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.color-btn.active {
+    transform: scale(1.25);
+    border: 4px solid #333;
+}
+
+/* BOTONES TÁCTILES GRANDES EN PANTALLA (Para niños de 4 años) */
+.touch-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 150;
+}
+
+.controls-left, .controls-right {
+    display: flex;
+    gap: 15px;
+    pointer-events: auto;
+}
+
+.big-btn {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    border: 4px solid #ffffff;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.3);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.08s, filter 0.08s;
+}
+
+.big-btn span {
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.big-btn:active {
+    transform: scale(0.9);
+    filter: brightness(0.85);
+}
+
+/* Botón Acelerar (Verde) */
+.btn-gas {
+    background: linear-gradient(135deg, #4cd964 0%, #28a745 100%);
+    width: 100px;
+    height: 100px;
+}
+
+/* Botón Frenar (Rojo) */
+.btn-brake {
+    background: linear-gradient(135deg, #ff3b30 0%, #d32f2f 100%);
+}
+
+/* Botón Salto (Azul) */
+.btn-jump {
+    background: linear-gradient(135deg, #007aff 0%, #0056b3 100%);
+}
+
+/* Botón Bocina (Amarillo) */
+.btn-horn {
+    background: linear-gradient(135deg, #ffcc00 0%, #ff9500 100%);
+    color: #333;
+}
+
+/* Botones Dirección (Naranja) */
+.btn-dir {
+    background: linear-gradient(135deg, #ff9500 0%, #e65100 100%);
+    width: 95px;
+    height: 95px;
+    font-size: 2.4rem;
+}
+
+/* Estilos Responsivos para Pantallas Pequeñas y Tablets */
+@media (max-width: 768px) {
+    #app-container {
+        border-radius: 0;
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    .title-container h1 {
+        font-size: 2rem;
+    }
+
+    .games-grid {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .game-card {
+        padding: 12px;
+    }
+
+    .card-icon {
+        font-size: 3rem;
+    }
+
+    .big-btn {
+        width: 72px;
+        height: 72px;
+        font-size: 1.6rem;
+    }
+
+    .btn-gas {
+        width: 82px;
+        height: 82px;
+    }
+
+    .btn-dir {
+        width: 76px;
+        height: 76px;
+        font-size: 2rem;
+    }
+}
+
+/* Modal QR para Tablets y Celulares */
+.modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 500;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.qr-modal-card {
+    position: relative;
+    background: #ffffff;
+    border-radius: 28px;
+    padding: 30px 25px;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    border: 5px solid #4caf50;
+    animation: popIn 0.25s ease-out;
+}
+
+@keyframes popIn {
+    0% { transform: scale(0.85); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.btn-close-modal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-close-modal:hover {
+    background: #e0e0e0;
+}
+
+.qr-modal-card h2 {
+    font-size: 1.5rem;
+    color: #2e7d32;
+    margin-bottom: 8px;
+}
+
+.qr-modal-card p {
+    font-size: 1rem;
+    color: #555;
+    margin-bottom: 15px;
+}
+
+.qr-box {
+    display: inline-block;
+    padding: 12px;
+    background: #ffffff;
+    border-radius: 16px;
+    border: 3px solid #ffcc00;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin-bottom: 15px;
+}
+
+.qr-box img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.url-badge {
+    background: #f1f8e9;
+    border: 2px dashed #81c784;
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.url-badge span {
+    font-size: 0.85rem;
+    display: block;
+    color: #666;
+}
+
+.url-badge strong {
+    font-size: 1.25rem;
+    color: #1b5e20;
+    letter-spacing: 0.5px;
+}
+
+.qr-hint {
+    font-size: 0.85rem !important;
+    color: #888 !important;
+    margin-bottom: 0 !important;
+}
+
