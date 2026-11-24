@@ -69,11 +69,6 @@ class HillsGame {
     setLevel(lvl) {
         this.level = lvl;
         this.resetGame();
-        if (window.soundController) {
-            if (lvl === 1) window.soundController.speak("¡Nivel uno! ¡A rodar por el parque!");
-            if (lvl === 2) window.soundController.speak("¡Nivel dos! ¡Dunas del desierto!");
-            if (lvl === 3) window.soundController.speak("¡Nivel tres! ¡Montañas de nieve!");
-        }
     }
 
     // Curva del terreno suave y ondulada
@@ -123,7 +118,6 @@ class HillsGame {
             this.bike.vx += 3;
             if (window.soundController) {
                 window.soundController.playJump();
-                window.soundController.speak("¡Saaalto!");
             }
             // Partículas de tierra al saltar
             for (let i = 0; i < 8; i++) {
@@ -248,7 +242,6 @@ class HillsGame {
                 b.vy = -4; // Leve rebote
                 if (window.soundController) {
                     window.soundController.playJump();
-                    window.soundController.speak("¡Arriba otra vez!");
                 }
             }
         }
@@ -262,9 +255,6 @@ class HillsGame {
                     this.starsCollected++;
                     if (window.soundController) {
                         window.soundController.playStar();
-                        if (this.starsCollected % 5 === 0) {
-                            window.soundController.speak("¡Genial!");
-                        }
                     }
                     // Chispas de colores
                     for (let i = 0; i < 7; i++) {
@@ -288,7 +278,6 @@ class HillsGame {
             b.vx = 2; // Desacelera despacio
             if (window.soundController) {
                 window.soundController.playWin();
-                window.soundController.speak("¡Llegaste a la meta! ¡Felicidades campeón!");
             }
             // Lanzar confeti
             for (let i = 0; i < 70; i++) {
@@ -334,7 +323,6 @@ class HillsGame {
         this.bike.vy = -5;
         if (window.soundController) {
             window.soundController.playOops();
-            window.soundController.speak("¡Uy, despacito!");
         }
     }
 

@@ -197,11 +197,6 @@ class LanesGame {
                 flip: Math.random() > 0.5
             });
         }
-
-        // Voz de bienvenida a la pista chilena
-        if (window.soundController) {
-            window.soundController.speak(`¡Bienvenidos a ${track.name}! ¡A correr por Chile!`);
-        }
     }
 
     getLaneX(laneIndex) {
@@ -232,7 +227,6 @@ class LanesGame {
         this.skidTimer = 0;
         if (window.soundController) {
             window.soundController.playTurbo();
-            window.soundController.speak("¡Super velocidad!");
         }
     }
 
@@ -241,7 +235,6 @@ class LanesGame {
         this.turboTimer = 0;
         if (window.soundController) {
             window.soundController.playSkid();
-            window.soundController.speak("¡Cuidado con el aceite!");
         }
     }
 
@@ -362,14 +355,6 @@ class LanesGame {
 
                 if (window.soundController) {
                     window.soundController.playTurbo();
-                    const rankMessages = {
-                        5: "¡Adelantaste al auto verde!",
-                        4: "¡Muy bien! ¡Ya vas cuarto!",
-                        3: "¡Genial! ¡ENTRASTE AL PODIO!",
-                        2: "¡Excelente! ¡Vas segundo!",
-                        1: "¡Increíble! ¡VAS PRIMERO, CAMPEÓN!"
-                    };
-                    window.soundController.speak(rankMessages[this.playerRank] || "¡Adelantaste!");
                 }
 
                 // Chispas de adelantamiento
@@ -418,17 +403,6 @@ class LanesGame {
 
             if (window.soundController) {
                 window.soundController.playWin();
-                if (reachedPodium) {
-                    if (this.playerRank === 1) {
-                        window.soundController.speak("¡Llegaste en PRIMER LUGAR! ¡Eres el campeón!");
-                    } else if (this.playerRank === 2) {
-                        window.soundController.speak("¡Segundo lugar! ¡Gran podio en Chile!");
-                    } else {
-                        window.soundController.speak("¡Tercer lugar! ¡Llegaste al podio!");
-                    }
-                } else {
-                    window.soundController.speak(`¡Gran carrera! Terminaste en la posición ${this.playerRank}.`);
-                }
             }
 
             // Confeti de fiesta

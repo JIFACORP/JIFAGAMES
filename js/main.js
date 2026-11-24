@@ -73,7 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.soundController) {
                 window.soundController.stopBgMusic();
                 window.soundController.startEngine();
-                window.soundController.speak("¡A toda velocidad!");
             }
         } else if (screen === 'lanes') {
             menuScreen.style.display = 'none';
@@ -97,13 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (window.soundController) {
             window.soundController.playJump();
-            const riderNames = {
-                perrito: "¡Guau guau! ¡Perrito listo!",
-                gatito: "¡Miau! ¡Gatito veloz!",
-                dino: "¡Roar! ¡Dino turbo!",
-                osito: "¡Hola! ¡Osito preparado!"
-            };
-            window.soundController.speak(riderNames[btn.dataset.rider] || "¡Listo!");
         }
     });
 

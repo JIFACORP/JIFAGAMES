@@ -9,7 +9,7 @@ class SoundController {
         this.isEngineRunning = false;
         this.bgMusicPlaying = false;
         this.bgTimer = null;
-        this.speechEnabled = true;
+        this.speechEnabled = false; // Desactivado completamente a petición
     }
 
     init() {
@@ -309,19 +309,12 @@ class SoundController {
         if (this.bgTimer) clearTimeout(this.bgTimer);
     }
 
-    // Voces de aliento en español ideales para niños
+    // Voces sintéticas desactivadas (solo efectos de sonido de juego)
     speak(phrase) {
-        if (this.muted || !this.speechEnabled || !('speechSynthesis' in window)) return;
-        try {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(phrase);
-            utterance.lang = 'es-ES';
-            utterance.pitch = 1.35; // Voz amigable, infantil y alegre
-            utterance.rate = 1.05;
-            window.speechSynthesis.speak(utterance);
-        } catch (e) {
-            console.log("Speech not available", e);
+        if ('speechSynthesis' in window) {
+            try { window.speechSynthesis.cancel(); } catch (e) {}
         }
+        return;
     }
 }
 
