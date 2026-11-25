@@ -451,10 +451,16 @@ class LanesGame {
         if (this.won) {
             this.speed *= Math.pow(0.95, dtFactor);
             this.playerZ += (this.speed * 0.06122) * dtFactor;
+            const ch = this.getH();
+            const cw = this.getW();
             this.confetti.forEach((c) => {
                 c.y += c.vy * dtFactor;
                 c.x += c.vx * dtFactor;
                 c.rotation += 0.05 * dtFactor;
+                if (c.y > ch + 20) {
+                    c.y = -20;
+                    c.x = (cw * 0.08) + Math.random() * (cw * 0.84);
+                }
             });
             return;
         }
@@ -595,6 +601,7 @@ class LanesGame {
         if (this.playerZ >= this.trackLength && !this.won) {
             this.won = true;
             if (window.soundController) {
+                window.soundController.stopEngine();
                 window.soundController.playWin();
             }
             const cw = this.getW();
@@ -1671,14 +1678,28 @@ class LanesGame {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
         ctx.fillRect(0, 0, w, h);
 
-        const bannerW = Math.min(540, w - 28);
-        const bannerH = Math.min(370, h - 40);
+        // Confeti festivo cayendo en toda la pantalla
+        this.confetti.forEach((c) => {
+            ctx.save();
+            ctx.translate(c.x, c.y);
+            ctx.rotate(c.rotation);
+            ctx.fillStyle = c.color;
+            ctx.fillRect(-c.size / 2, -c.size * 0.3, c.size, c.size * 0.6);
+            ctx.restore();
+        });
+
+        const bannerW = Math.min(540, w - 24);
+        const bannerH = Math.min(410, h - 28);
         const bx = (w - bannerW) / 2;
         const by = (h - bannerH) / 2;
-        const maxTxtW = bannerW - 36;
+        const maxTxtW = bannerW - 32;
+        const uiScale = Math.min(1, bannerH / 410);
 
         const track = this.getCurrentTrack();
         const reachedPodium = this.playerRank <= 3;
+        const riderId = GAME_CONFIG.selectedRider || 'joaquin';
+        const pilotObj = (GAME_CONFIG.riders || []).find((r) => r.id === riderId);
+        const pilotName = (pilotObj ? pilotObj.name : riderId).toUpperCase();
 
         ctx.fillStyle = '#FFFFFF';
         ctx.strokeStyle = reachedPodium ? '#FFD700' : '#FF9500';
@@ -1691,57 +1712,50 @@ class LanesGame {
         ctx.textAlign = 'center';
 
         if (reachedPodium) {
-            const medal = this.playerRank === 1 ? '🏆' : (this.playerRank === 2 ? '🥈' : '🥉');
-            const avatar = window.PILOT_AVATARS && window.PILOT_AVATARS[GAME_CONFIG.selectedRider];
-            if (avatar && avatar.complete && avatar.naturalWidth > 0) {
-                const avR = 26;
-                const avX = w / 2 - 34;
-                const avY = by + 48;
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(avX, avY, avR, 0, Math.PI * 2);
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fill();
-                ctx.lineWidth = 3;
-                ctx.strokeStyle = '#FFD700';
-                ctx.stroke();
-                ctx.clip();
-                ctx.drawImage(avatar, avX - avR, avY - avR, avR * 2, avR * 2);
-                ctx.restore();
-
-                ctx.font = '44px sans-serif';
-                ctx.fillText(medal, w / 2 + 28, by + 64);
-            } else {
-                ctx.font = '48px sans-serif';
-                ctx.fillText(medal, w / 2, by + 64);
-            }
-
             ctx.fillStyle = '#E10600';
-            ctx.font = 'italic 900 25px "Exo 2", sans-serif';
-            ctx.fillText(this.playerRank === 1 ? '¡1º LUGAR! ¡CAMPEÓN!' : '🇨🇱 ¡PODIO EN CHILE! 🇨🇱', w / 2, by + 106, maxTxtW);
+            ctx.font = `italic 900 ${Math.round(24 * uiScale)}px "Exo 2", sans-serif`;
+            ctx.fillText(
+                this.playerRank === 1 ? `🏆 ¡${pilotName} CAMPEÓN! 🏆` : `🇨🇱 ¡${pilotName} EN EL PODIO! 🇨🇱`,
+                w / 2,
+                by + Math.round(44 * uiScale),
+                maxTxtW
+            );
 
             ctx.fillStyle = '#222';
-            ctx.font = '700 18px "Titillium Web", sans-serif';
-            ctx.fillText(`¡Terminaste en ${this.playerRank}º Lugar en ${track.name}!`, w / 2, by + 140, maxTxtW);
+            ctx.font = `700 ${Math.round(17 * uiScale)}px "Titillium Web", sans-serif`;
+            ctx.fillText(
+                `¡${this.playerRank}º Lugar en ${track.name}!`,
+                w / 2,
+                by + Math.round(72 * uiScale),
+                maxTxtW
+            );
 
-            this.drawPodiumSteps(ctx, w / 2, by + 225);
+            // Podio con el piloto Funko Pop celebrando sobre su escalón ganado
+            const podiumBaseY = by + bannerH - Math.round(102 * uiScale);
+            this.drawPodiumSteps(ctx, w / 2, podiumBaseY, uiScale, this.playerRank, riderId);
 
             const isLastTrack = this.currentTrackIndex >= this.tracks.length - 1;
             const btnText = isLastTrack ? '🇨🇱 ¡CAMPEÓN! JUGAR DE NUEVO 🏆' : '🚀 ¡SIGUIENTE PISTA CHILENA! 🇨🇱';
 
-            this.actionBtn = { x: bx + 24, y: by + bannerH - 80, w: bannerW - 48, h: 58, action: isLastTrack ? 'restart' : 'next' };
+            this.actionBtn = {
+                x: bx + 24,
+                y: by + bannerH - Math.round(74 * uiScale),
+                w: bannerW - 48,
+                h: Math.round(54 * uiScale),
+                action: isLastTrack ? 'restart' : 'next'
+            };
 
             ctx.fillStyle = '#00E676';
             ctx.beginPath();
-            ctx.roundRect(this.actionBtn.x, this.actionBtn.y, this.actionBtn.w, this.actionBtn.h, 29);
+            ctx.roundRect(this.actionBtn.x, this.actionBtn.y, this.actionBtn.w, this.actionBtn.h, this.actionBtn.h / 2);
             ctx.fill();
             ctx.strokeStyle = '#00C853';
             ctx.lineWidth = 4;
             ctx.stroke();
 
             ctx.fillStyle = '#004D40';
-            ctx.font = 'italic 900 18px "Exo 2", sans-serif';
-            ctx.fillText(btnText, w / 2, this.actionBtn.y + 36, this.actionBtn.w - 24);
+            ctx.font = `italic 900 ${Math.round(18 * uiScale)}px "Exo 2", sans-serif`;
+            ctx.fillText(btnText, w / 2, this.actionBtn.y + this.actionBtn.h * 0.63, this.actionBtn.w - 24);
         } else {
             ctx.font = '48px sans-serif';
             ctx.fillText('🏎️', w / 2, by + 66);
@@ -1771,23 +1785,145 @@ class LanesGame {
         }
     }
 
-    drawPodiumSteps(ctx, cx, cy) {
+    drawPodiumSteps(ctx, cx, baseY, uiScale = 1, playerRank = 1, riderId = 'joaquin') {
         ctx.save();
-        ctx.fillStyle = '#B0BEC5';
-        ctx.fillRect(cx - 100, cy - 35, 60, 45);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '900 17px "Orbitron", sans-serif';
-        ctx.fillText('2º', cx - 70, cy - 8);
+        ctx.translate(cx, baseY);
+        ctx.scale(uiScale, uiScale);
 
+        // Escalón 2º lugar (izquierda)
+        ctx.fillStyle = '#90A4AE';
+        ctx.beginPath();
+        ctx.roundRect(-114, -44, 72, 44, [8, 8, 0, 0]);
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '900 18px "Orbitron", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('2º', -78, -16);
+
+        // Escalón 1º lugar (centro)
         ctx.fillStyle = '#FFD700';
-        ctx.fillRect(cx - 35, cy - 55, 70, 65);
-        ctx.fillStyle = '#222';
-        ctx.fillText('1º 🏆', cx, cy - 18);
+        ctx.beginPath();
+        ctx.roundRect(-40, -64, 80, 64, [10, 10, 0, 0]);
+        ctx.fill();
+        ctx.strokeStyle = '#F59E0B';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.fillStyle = '#222222';
+        ctx.font = '900 20px "Orbitron", sans-serif';
+        ctx.fillText('1º', 0, -24);
 
+        // Escalón 3º lugar (derecha)
         ctx.fillStyle = '#CD7F32';
-        ctx.fillRect(cx + 40, cy - 25, 60, 35);
+        ctx.beginPath();
+        ctx.roundRect(42, -32, 72, 32, [8, 8, 0, 0]);
+        ctx.fill();
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillText('3º', cx + 70, cy - 2);
+        ctx.font = '900 18px "Orbitron", sans-serif';
+        ctx.fillText('3º', 78, -10);
+
+        // Posición del piloto celebrando sobre el escalón que ganó
+        const stepPos = {
+            1: { x: 0, y: -64 },
+            2: { x: -78, y: -44 },
+            3: { x: 78, y: -32 }
+        }[playerRank] || { x: 0, y: -64 };
+
+        this.drawCelebratingPilotOnPodium(ctx, stepPos.x, stepPos.y, riderId);
+
+        ctx.restore();
+    }
+
+    drawCelebratingPilotOnPodium(ctx, px, stepTopY, riderId) {
+        const now = Date.now();
+        const hop = Math.abs(Math.sin(now * 0.006)) * 6;
+        const wave = Math.sin(now * 0.011) * 5;
+        const isJoaquin = riderId === 'joaquin';
+
+        ctx.save();
+        ctx.translate(px, stepTopY - hop);
+
+        // Sombra sobre el escalón
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+        ctx.beginPath();
+        ctx.ellipse(0, hop, 16, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Piernas y zapatillas
+        ctx.fillStyle = '#1E293B';
+        ctx.beginPath();
+        ctx.roundRect(-9, -14, 7, 14, 3);
+        ctx.roundRect(2, -14, 7, 14, 3);
+        ctx.fill();
+
+        // Brazos levantados celebrando
+        ctx.strokeStyle = isJoaquin ? '#FFFFFF' : '#F5A623';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        // Brazo izquierdo sosteniendo copa dorada
+        ctx.beginPath();
+        ctx.moveTo(-11, -34);
+        ctx.lineTo(-24, -52 - wave * 0.5);
+        ctx.stroke();
+        // Brazo derecho saludando arriba
+        ctx.beginPath();
+        ctx.moveTo(11, -34);
+        ctx.lineTo(25, -54 + wave);
+        ctx.stroke();
+
+        // Copita/trofeo dorado en mano izquierda
+        ctx.font = '20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🏆', -26, -54 - wave * 0.5);
+
+        // Torso con vestimenta del piloto (Joaquín: chaleco rojo + pañuelo negro; Ignacio: chaqueta amarilla)
+        ctx.fillStyle = isJoaquin ? '#D32F2F' : '#F5A623';
+        ctx.beginPath();
+        ctx.roundRect(-13, -40, 26, 28, 7);
+        ctx.fill();
+
+        if (isJoaquin) {
+            // Camisa blanca central y pañuelo negro
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(-4, -39, 8, 25);
+            ctx.fillStyle = '#181818';
+            ctx.beginPath();
+            ctx.moveTo(-9, -40);
+            ctx.lineTo(9, -40);
+            ctx.lineTo(0, -30);
+            ctx.closePath();
+            ctx.fill();
+        } else {
+            // Cuello capucha oscura
+            ctx.fillStyle = '#D98200';
+            ctx.beginPath();
+            ctx.roundRect(-10, -42, 20, 7, 3);
+            ctx.fill();
+        }
+
+        // Cabeza Funko Pop celebrando (usa la imagen real generada)
+        const headY = -66;
+        const headR = 27;
+        const avatar = window.PILOT_AVATARS && window.PILOT_AVATARS[riderId];
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(0, headY, headR, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = '#FFD700';
+        ctx.stroke();
+
+        if (avatar && avatar.complete && avatar.naturalWidth > 0) {
+            ctx.clip();
+            // Recorte centrado en la gran cabeza estilo Funko Pop
+            ctx.drawImage(avatar, -headR * 1.15, headY - headR * 0.95, headR * 2.3, headR * 2.3);
+        } else {
+            ctx.font = '26px sans-serif';
+            ctx.fillText(isJoaquin ? '👦🏻' : '🧑🏻', 0, headY + 9);
+        }
+        ctx.restore();
+
         ctx.restore();
     }
 

@@ -5,6 +5,8 @@ class SoundController {
         this.ctx = null;
         this.muted = false;
         this.engineOsc = null;
+        this.engineHarmonic = null;
+        this.engineFilter = null;
         this.engineGain = null;
         this.isEngineRunning = false;
         this.bgMusicPlaying = false;
@@ -178,17 +180,17 @@ class SoundController {
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(300, now);
-        osc.frequency.exponentialRampToValueAtTime(120, now + 0.3);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(280, now);
+        osc.frequency.exponentialRampToValueAtTime(115, now + 0.25);
 
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.26);
 
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.3);
+        osc.stop(now + 0.28);
     }
 
     // Sonido de victoria / meta "¡Tatatachán!"
@@ -221,29 +223,42 @@ class SoundController {
         });
     }
 
-    // Sonido de motor continuo dinámico
+    // Sonido de motor suave y amigable (ronroneo grave sin zumbido áspero)
     startEngine() {
         if (this.muted || this.isEngineRunning) return;
         this.init();
         try {
+            const now = this.ctx.currentTime;
             this.engineOsc = this.ctx.createOscillator();
+            this.engineHarmonic = this.ctx.createOscillator();
+            this.engineFilter = this.ctx.createBiquadFilter();
             this.engineGain = this.ctx.createGain();
 
-            this.engineOsc.type = 'sawtooth';
-            this.engineOsc.frequency.setValueAtTime(65, this.ctx.currentTime);
+            // Onda senoidal cálida + armónico triangular suave en quinta justa (acorde amigable)
+            this.engineOsc.type = 'sine';
+            this.engineOsc.frequency.setValueAtTime(64, now);
 
-            // Filtro para sonido más cálido de motito
-            this.engineFilter = this.ctx.createBiquadFilter();
+            this.engineHarmonic.type = 'triangle';
+            this.engineHarmonic.frequency.setValueAtTime(96, now);
+
+            // Filtro pasa-bajos muy suave para eliminar frecuencias chillonas
             this.engineFilter.type = 'lowpass';
-            this.engineFilter.frequency.setValueAtTime(280, this.ctx.currentTime);
+            this.engineFilter.frequency.setValueAtTime(190, now);
+            this.engineFilter.Q.setValueAtTime(0.9, now);
 
-            this.engineGain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+            const harmonicGain = this.ctx.createGain();
+            harmonicGain.gain.setValueAtTime(0.32, now);
+
+            this.engineGain.gain.setValueAtTime(0.018, now);
 
             this.engineOsc.connect(this.engineFilter);
+            this.engineHarmonic.connect(harmonicGain);
+            harmonicGain.connect(this.engineFilter);
             this.engineFilter.connect(this.engineGain);
             this.engineGain.connect(this.ctx.destination);
 
-            this.engineOsc.start();
+            this.engineOsc.start(now);
+            this.engineHarmonic.start(now);
             this.isEngineRunning = true;
         } catch (e) {
             console.warn("AudioContext engine error", e);
@@ -252,10 +267,18 @@ class SoundController {
 
     updateEngine(speedRatio, isAccelerating) {
         if (!this.isEngineRunning || this.muted || !this.engineOsc) return;
-        const targetFreq = 55 + Math.min(speedRatio * 130, 180) + (isAccelerating ? 40 : 0);
-        this.engineOsc.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.08);
-        const targetGain = isAccelerating ? 0.12 : 0.05;
-        this.engineGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.08);
+        const now = this.ctx.currentTime;
+        const clamped = Math.max(0, Math.min(1.35, speedRatio || 0));
+        const baseFreq = 58 + clamped * 56 + (isAccelerating ? 8 : 0); // Rango cálido 58–141 Hz
+        this.engineOsc.frequency.setTargetAtTime(baseFreq, now, 0.12);
+        if (this.engineHarmonic) {
+            this.engineHarmonic.frequency.setTargetAtTime(baseFreq * 1.5, now, 0.12);
+        }
+        if (this.engineFilter) {
+            this.engineFilter.frequency.setTargetAtTime(175 + clamped * 125, now, 0.12);
+        }
+        const targetGain = isAccelerating ? (0.022 + clamped * 0.012) : 0.014;
+        this.engineGain.gain.setTargetAtTime(targetGain, now, 0.12);
     }
 
     stopEngine() {
@@ -265,8 +288,17 @@ class SoundController {
                 this.engineOsc.stop();
                 this.engineOsc.disconnect();
             }
+            if (this.engineHarmonic) {
+                this.engineHarmonic.stop();
+                this.engineHarmonic.disconnect();
+            }
+            if (this.engineFilter) {
+                this.engineFilter.disconnect();
+            }
         } catch(e) {}
         this.engineOsc = null;
+        this.engineHarmonic = null;
+        this.engineFilter = null;
         this.isEngineRunning = false;
     }
 
