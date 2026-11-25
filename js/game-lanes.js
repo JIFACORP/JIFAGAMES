@@ -473,8 +473,12 @@ class LanesGame {
         const baseSeg = Math.floor(cameraZ / this.segmentLength);
 
         const projectedSegments = [];
+        const firstAheadSeg = Math.floor(this.playerZ / this.segmentLength) + 1;
+        const playerPercent = (this.playerZ % this.segmentLength) / this.segmentLength;
+        const firstCurve = this.getSegmentCurve(firstAheadSeg) * 0.15;
+
         let curveX = 0;
-        let dx = 0;
+        let dx = -(firstCurve * playerPercent);
         let maxY = h;
 
         for (let n = 1; n <= drawDistance; n++) {
@@ -482,7 +486,7 @@ class LanesGame {
             const segZ = segIndex * this.segmentLength;
             const segY = this.getRoadHill(segZ);
 
-            // Solo acumular curvatura por delante del jugador para mantener el auto alineado con la pista
+            // Solo acumular curvatura por delante del jugador (con inicialización fraccionaria sin saltos)
             if (segZ > this.playerZ) {
                 dx += this.getSegmentCurve(segIndex) * 0.15;
                 curveX += dx;
@@ -733,7 +737,7 @@ class LanesGame {
         ctx.arc(w * 0.8, horizonY * 0.35, 38, 0, Math.PI * 2);
         ctx.fill();
 
-        const curveOffset = this.getSegmentCurve(Math.floor(this.playerZ / 100)) * 2.5;
+        const curveOffset = this.getSegmentCurve(this.playerZ / 100) * 2.5;
 
         // Cordillera chilena de fondo
         ctx.fillStyle = track.mountainColor;
