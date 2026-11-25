@@ -19,6 +19,7 @@ class LanesGame {
                 itemStep: 4800,
                 barrierChance: 0.35,
                 weaveAmp: 0.002,
+                circuitControl: [[0.0,0.75],[0.85,0.75],[1.15,0.20],[0.85,-0.55],[0.15,-0.40],[-0.45,-0.70],[-1.10,-0.30],[-0.95,0.60]],
                 skyTop: "#F57C00",
                 skyBottom: "#FFE082",
                 mountainColor: "#8D4925",
@@ -42,6 +43,7 @@ class LanesGame {
                 itemStep: 4100,
                 barrierChance: 0.48,
                 weaveAmp: 0.004,
+                circuitControl: [[0.0,0.78],[0.95,0.78],[1.15,0.10],[0.65,-0.65],[0.10,-0.15],[-0.45,-0.72],[-1.15,-0.25],[-0.85,0.65]],
                 skyTop: "#1565C0",
                 skyBottom: "#90CAF9",
                 mountainColor: "#37474F",
@@ -65,6 +67,7 @@ class LanesGame {
                 itemStep: 3500,
                 barrierChance: 0.60,
                 weaveAmp: 0.006,
+                circuitControl: [[0.0,0.80],[0.90,0.78],[1.18,0.25],[0.60,-0.10],[0.95,-0.68],[0.10,-0.75],[-0.25,-0.20],[-0.85,-0.65],[-1.18,0.10],[-0.80,0.72]],
                 skyTop: "#0277BD",
                 skyBottom: "#80DEEA",
                 mountainColor: "#1B5E20",
@@ -88,6 +91,7 @@ class LanesGame {
                 itemStep: 3000,
                 barrierChance: 0.68,
                 weaveAmp: 0.008,
+                circuitControl: [[0.0,0.82],[1.00,0.78],[1.20,0.15],[0.75,-0.25],[1.05,-0.72],[0.20,-0.80],[-0.15,-0.10],[-0.75,-0.75],[-1.20,-0.20],[-0.70,0.25],[-1.05,0.75]],
                 skyTop: "#0D47A1",
                 skyBottom: "#81D4FA",
                 mountainColor: "#263238",
@@ -104,13 +108,17 @@ class LanesGame {
 
         this.currentTrackIndex = 0;
 
-        // Configuración del mundo 3D: 3 vueltas (~20s c/u = ~60s total)
+        // Configuración del mundo 3D: 3 vueltas (~20s c/u = ~60s total, 120 segmentos/vuelta)
         this.totalLaps = 3;
         this.lapLength = 18000;
         this.trackLength = this.lapLength * this.totalLaps; // 54000
-        this.segmentLength = 150;   // Bloques más largos para eliminar parpadeo (titileo) en curvas
+        this.segmentLength = 150;   // 18000 / 150 = 120 segmentos exactos por vuelta
         this.worldHalfW = 550;      // Pista más ancha para comodidad y adelantamientos
         this.cameraY = 850;         // Altura de cámara sobre el asfalto
+
+        this.tracks.forEach((t) => {
+            t.circuit = this.buildTrackCircuit(t.circuitControl, 120, t.curveAmp || 1.0);
+        });
 
         this.initRoad();
     }
@@ -251,8 +259,114 @@ class LanesGame {
         }
     }
 
-    // Curva del segmento basada en posición Z real (suave y escalada por pista)
+    // Genera la geometría cerrada real del circuito (Catmull-Rom + remuestreo uniforme)
+    buildTrackCircuit(ctrl, N = 120, curveAmp = 1.0) {
+        const raw = [];
+        const m = ctrl.length;
+        const steps = 24;
+        for (let i = 0; i < m; i++) {
+            const p0 = ctrl[(i - 1 + m) % m];
+            const p1 = ctrl[i];
+            const p2 = ctrl[(i + 1) % m];
+            const p3 = ctrl[(i + 2) % m];
+            for (let s = 0; s < steps; s++) {
+                const t = s / steps;
+                const t2 = t * t;
+                const t3 = t2 * t;
+                const x = 0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3);
+                const y = 0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3);
+                raw.push({ x, y });
+            }
+        }
+
+        // Remuestreo por longitud de arco constante (velocidad uniforme en el minimapa)
+        const dists = [0];
+        for (let i = 0; i < raw.length; i++) {
+            const a = raw[i];
+            const b = raw[(i + 1) % raw.length];
+            dists.push(dists[dists.length - 1] + Math.hypot(b.x - a.x, b.y - a.y));
+        }
+        const total = dists[dists.length - 1];
+        const pts = [];
+        let j = 0;
+        for (let k = 0; k < N; k++) {
+            const target = (k / N) * total;
+            while (j < raw.length - 1 && dists[j + 1] < target) j++;
+            const segLen = Math.max(1e-9, dists[j + 1] - dists[j]);
+            const u = (target - dists[j]) / segLen;
+            const a = raw[j];
+            const b = raw[(j + 1) % raw.length];
+            pts.push({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u });
+        }
+
+        // Normalizar coordenadas en [0, 1] manteniendo relación de aspecto dentro del minimapa
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        pts.forEach((p) => {
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.y > maxY) maxY = p.y;
+        });
+        const span = Math.max(maxX - minX, maxY - minY, 1e-6);
+        const offX = (span - (maxX - minX)) * 0.5;
+        const offY = (span - (maxY - minY)) * 0.5;
+        const normPts = pts.map((p) => ({
+            nx: (p.x - minX + offX) / span,
+            ny: (p.y - minY + offY) / span
+        }));
+
+        // Curvatura suavizada y acotada para la vista 3D (sin saltos ni tirones)
+        const rawCurvs = [];
+        for (let i = 0; i < N; i++) {
+            const p0 = pts[(i - 1 + N) % N];
+            const p1 = pts[i];
+            const p2 = pts[(i + 1) % N];
+            const a1 = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+            const a2 = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+            let da = ((a2 - a1 + Math.PI) % (Math.PI * 2));
+            if (da < 0) da += Math.PI * 2;
+            da -= Math.PI;
+            rawCurvs.push(Math.max(-8.5, Math.min(8.5, da * 38 * curveAmp)));
+        }
+        const curves = rawCurvs.map((_, i) => {
+            let sum = 0;
+            for (let d = -2; d <= 2; d++) sum += rawCurvs[(i + d + N) % N];
+            return sum / 5;
+        });
+
+        return { points: normPts, curves, length: N };
+    }
+
+    getCircuitPoint(track, z) {
+        const circuit = track && track.circuit;
+        if (!circuit) return { nx: 0.5, ny: 0.5, tx: 1, ty: 0 };
+        const N = circuit.length;
+        const lapFrac = (((z % this.lapLength) + this.lapLength) % this.lapLength) / this.lapLength;
+        const fIdx = lapFrac * N;
+        const i0 = Math.floor(fIdx) % N;
+        const i1 = (i0 + 1) % N;
+        const t = fIdx - Math.floor(fIdx);
+        const p0 = circuit.points[i0];
+        const p1 = circuit.points[i1];
+        const dx = p1.nx - p0.nx;
+        const dy = p1.ny - p0.ny;
+        const len = Math.hypot(dx, dy) || 1;
+        return {
+            nx: p0.nx + dx * t,
+            ny: p0.ny + dy * t,
+            tx: dx / len,
+            ty: dy / len
+        };
+    }
+
+    // Curva del segmento sincronizada con el circuito cerrado real
     getSegmentCurve(segIndex) {
+        const circuit = this.getCurrentTrack().circuit;
+        if (circuit && circuit.curves) {
+            const N = circuit.length;
+            const k = ((Math.floor(segIndex) % N) + N) % N;
+            return circuit.curves[k];
+        }
         const z = segIndex * this.segmentLength;
         const amp = this.getCurrentTrack().curveAmp || 1.0;
         return (Math.sin(z * 0.0005) * 6 + Math.cos(z * 0.00025) * 3.5) * amp;
@@ -431,6 +545,9 @@ class LanesGame {
                 this.playerX = Math.max(-0.90, Math.min(0.90, this.playerX - pushDir * 0.018 * dtFactor));
             }
         });
+
+        // Actualizar posición real en tiempo real (coincide siempre con el mapa del circuito)
+        this.playerRank = 1 + this.rivals.filter((r) => r.z > this.playerZ).length;
 
         // 4.5 PROGRESO DE VUELTAS (3 Vueltas)
         const newLap = Math.min(this.totalLaps, Math.floor(this.playerZ / this.lapLength) + 1);
@@ -1346,6 +1463,143 @@ class LanesGame {
         ctx.fillStyle = '#FFD700';
         ctx.font = isMobile ? '700 9.5px "Titillium Web", sans-serif' : '700 11px "Titillium Web", sans-serif';
         ctx.fillText('KM/H', speedX + speedW * 0.76, pillY + pillH - 15);
+
+        // MAPA DEL CIRCUITO EN VIVO CON TODOS LOS CORREDORES
+        this.drawCircuitMinimap(ctx, w, h, track, isMobile, pillY, pillH);
+    }
+
+    drawCircuitMinimap(ctx, w, h, track, isMobile, pillY, pillH) {
+        const circuit = track && track.circuit;
+        if (!circuit) return;
+
+        const isShortLandscape = !isMobile && h < 500;
+        const mapW = isMobile ? 122 : (isShortLandscape ? 132 : 168);
+        const mapH = isMobile ? 86 : (isShortLandscape ? 88 : 118);
+        const mapX = w - mapW - (isMobile ? 12 : 14);
+        const mapY = pillY + pillH + (isMobile ? 8 : 10);
+
+        ctx.save();
+
+        // Tarjeta telemetría del circuito
+        ctx.fillStyle = 'rgba(12, 16, 24, 0.80)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.38)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(mapX, mapY, mapW, mapH, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        // Encabezado compacto
+        ctx.font = isMobile ? 'italic 900 9px "Exo 2", sans-serif' : 'italic 900 10.5px "Exo 2", sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#90CAF9';
+        ctx.fillText('CIRCUITO', mapX + 10, mapY + 14);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#FFD700';
+        ctx.fillText(`P${this.playerRank}/6`, mapX + mapW - 10, mapY + 14);
+
+        // Área interna donde se dibuja el trazado
+        const padX = isMobile ? 14 : 18;
+        const padTop = 20;
+        const padBot = isMobile ? 10 : 12;
+        const innerW = mapW - padX * 2;
+        const innerH = mapH - padTop - padBot;
+        const boxSize = Math.min(innerW, innerH);
+        const ox = mapX + (mapW - boxSize) / 2;
+        const oy = mapY + padTop + (innerH - boxSize) / 2;
+
+        const toMapXY = (nx, ny) => ({
+            x: ox + nx * boxSize,
+            y: oy + ny * boxSize
+        });
+
+        // Trazar circuito cerrado (borde blanco + asfalto oscuro + línea media)
+        const pts = circuit.points;
+        const buildPath = () => {
+            ctx.beginPath();
+            pts.forEach((p, idx) => {
+                const mp = toMapXY(p.nx, p.ny);
+                if (idx === 0) ctx.moveTo(mp.x, mp.y);
+                else ctx.lineTo(mp.x, mp.y);
+            });
+            ctx.closePath();
+        };
+
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        buildPath();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = isMobile ? 5.5 : 7;
+        ctx.stroke();
+
+        buildPath();
+        ctx.strokeStyle = '#252B36';
+        ctx.lineWidth = isMobile ? 3.5 : 4.5;
+        ctx.stroke();
+
+        // Línea de Meta / Largada perpendicular en el punto 0
+        const start = this.getCircuitPoint(track, 0);
+        const sp = toMapXY(start.nx, start.ny);
+        const nx = -start.ty;
+        const ny = start.tx;
+        const tickLen = isMobile ? 5.5 : 7;
+        ctx.strokeStyle = '#FF1744';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(sp.x - nx * tickLen, sp.y - ny * tickLen);
+        ctx.lineTo(sp.x + nx * tickLen, sp.y + ny * tickLen);
+        ctx.stroke();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(sp.x - nx * (tickLen * 0.5), sp.y - ny * (tickLen * 0.5));
+        ctx.lineTo(sp.x + nx * (tickLen * 0.5), sp.y + ny * (tickLen * 0.5));
+        ctx.stroke();
+
+        // Corredores rivales en vivo sobre el circuito
+        this.rivals.forEach((rival) => {
+            const rp = this.getCircuitPoint(track, rival.z);
+            const pos = toMapXY(rp.nx, rp.ny);
+            const r = isMobile ? 3.8 : 4.6;
+
+            ctx.fillStyle = rival.color;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 1.3;
+            ctx.stroke();
+        });
+
+        // Corredor del jugador (destacado por encima de todos)
+        const pp = this.getCircuitPoint(track, this.playerZ);
+        const playerPos = toMapXY(pp.nx, pp.ny);
+        const playerColor = GAME_CONFIG.selectedColor || '#DC0000';
+        const pr = isMobile ? 5.4 : 6.6;
+
+        // Halo pulsante de seguimiento para el jugador
+        const pulse = 1 + Math.sin(Date.now() * 0.01) * 0.2;
+        ctx.strokeStyle = this.turboTimer > 0 ? '#00E5FF' : '#FFD700';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(playerPos.x, playerPos.y, (pr + 3) * pulse, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = playerColor;
+        ctx.beginPath();
+        ctx.arc(playerPos.x, playerPos.y, pr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(playerPos.x, playerPos.y, isMobile ? 1.6 : 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
     }
 
     drawPodiumScreen(ctx, w, h) {
