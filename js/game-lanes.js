@@ -382,17 +382,15 @@ class LanesGame {
                 }
             }
 
-            // Choque amistoso tipo autito chocador
-            if (Math.abs(rival.z - this.playerZ) < 160 && Math.abs(rival.x - this.playerX) < 0.32) {
-                rival.wobble = 15;
-                if (this.playerX < rival.x) {
-                    rival.x = Math.min(0.85, rival.x + 0.14);
-                    this.playerX = Math.max(-0.88, this.playerX - 0.08);
-                } else {
-                    rival.x = Math.max(-0.85, rival.x - 0.14);
-                    this.playerX = Math.min(0.88, this.playerX + 0.08);
+            // Choque amistoso fluido (sin saltos ni tirones)
+            if (Math.abs(rival.z - this.playerZ) < 130 && Math.abs(rival.x - this.playerX) < 0.30) {
+                if (rival.wobble <= 0) {
+                    rival.wobble = 24;
+                    if (window.soundController) window.soundController.playJump();
                 }
-                if (window.soundController) window.soundController.playJump();
+                const pushDir = this.playerX <= rival.x ? 1 : -1;
+                rival.x = Math.max(-0.82, Math.min(0.82, rival.x + pushDir * 0.032 * dtFactor));
+                this.playerX = Math.max(-0.90, Math.min(0.90, this.playerX - pushDir * 0.018 * dtFactor));
             }
         });
 
@@ -567,20 +565,33 @@ class LanesGame {
         }
         ctx.restore();
 
-        // 4. DIBUJAR OBJETOS EN EL SEGMENTO CORRESPONDIENTE (De atrás hacia adelante para oclusión perfecta)
-        // Mapear items, props y rivales dentro de los segmentos visibles
-        for (let i = projectedSegments.length - 1; i >= 0; i--) {
-            const seg = projectedSegments[i];
-            const segMinZ = seg.segZ;
-            const segMaxZ = seg.segZ + this.segmentLength;
+        // 4. DIBUJAR OBJETOS INTERPOLADOS CON FLUIDEZ 60/120 FPS (De atrás hacia adelante)
+        const lerp = (a, b, t) => a + (b - a) * t;
+        const behindRivals = [];
+
+        for (let i = projectedSegments.length - 2; i >= 0; i--) {
+            const s1 = projectedSegments[i];
+            const s2 = projectedSegments[i + 1];
+            const segMinZ = s1.segZ;
+            const segMaxZ = s2.segZ;
+            const maxClipY = Math.max(s1.clipY, s2.clipY);
+
+            const interpAtZ = (z) => {
+                const t = Math.max(0, Math.min(1, (z - segMinZ) / this.segmentLength));
+                return {
+                    x: lerp(s1.proj.x, s2.proj.x, t),
+                    y: lerp(s1.proj.y, s2.proj.y, t),
+                    rw: lerp(s1.proj.rw, s2.proj.rw, t),
+                    scale: lerp(s1.proj.scale, s2.proj.scale, t)
+                };
+            };
 
             // Paisaje chileno a los lados
             this.props.forEach((prop) => {
                 if (prop.z >= segMinZ && prop.z < segMaxZ) {
-                    const px = seg.proj.x + prop.x * seg.proj.rw;
-                    const py = seg.proj.y;
-                    if (py <= seg.clipY && py >= horizonY) {
-                        this.drawChileanProp(ctx, px, py, prop.type, seg.proj.scale);
+                    const p = interpAtZ(prop.z);
+                    if (p.y <= maxClipY + 20 && p.y >= horizonY) {
+                        this.drawChileanProp(ctx, p.x + prop.x * p.rw, p.y, prop.type, p.scale);
                     }
                 }
             });
@@ -588,25 +599,33 @@ class LanesGame {
             // Items en pista (Aceite / Flechas Turbo)
             this.items.forEach((item) => {
                 if (!item.hit && item.z >= segMinZ && item.z < segMaxZ) {
-                    const ix = seg.proj.x + item.x * seg.proj.rw;
-                    const iy = seg.proj.y;
-                    if (iy <= seg.clipY && iy >= horizonY) {
+                    const p = interpAtZ(item.z);
+                    if (p.y <= maxClipY + 20 && p.y >= horizonY) {
+                        const ix = p.x + item.x * p.rw;
                         if (item.type === 'speed') {
-                            this.drawSpeedPad3D(ctx, ix, iy, seg.proj.scale);
+                            this.drawSpeedPad3D(ctx, ix, p.y, p.scale);
                         } else {
-                            this.drawOilPuddle3D(ctx, ix, iy, seg.proj.scale);
+                            this.drawOilPuddle3D(ctx, ix, p.y, p.scale);
                         }
                     }
                 }
             });
 
-            // Autos Rivales de F1
+            // Autos Rivales de F1 (Interpolados cuadro a cuadro)
+            const playerCarY = w < 640 ? h - 135 : h - 105;
             this.rivals.forEach((rival) => {
                 if (rival.z >= segMinZ && rival.z < segMaxZ) {
-                    const rx = seg.proj.x + rival.x * seg.proj.rw;
-                    const ry = seg.proj.y;
-                    if (ry <= seg.clipY && ry >= horizonY) {
-                        const carScale = seg.proj.scale * 1.15;
+                    const p = interpAtZ(rival.z);
+                    const rx = p.x + rival.x * p.rw;
+                    const ry = p.y;
+                    const carScale = p.scale * 1.15;
+                    const tilt = rival.wobble > 0 ? Math.sin(rival.wobble * 0.45) * 0.35 : 0;
+
+                    if (ry >= playerCarY) {
+                        if (ry <= h + 70 && ry >= horizonY) {
+                            behindRivals.push({ rival, rx, ry, carScale, tilt });
+                        }
+                    } else if (ry <= maxClipY + 20 && ry >= horizonY) {
                         drawF1CarRearView(
                             ctx,
                             rx,
@@ -615,7 +634,7 @@ class LanesGame {
                             rival.color,
                             rival.number,
                             rival.rider,
-                            rival.wobble * 0.1,
+                            tilt,
                             false,
                             false
                         );
@@ -626,6 +645,22 @@ class LanesGame {
 
         // 5. AUTO DE F1 DEL JUGADOR EN PRIMER PLANO
         this.drawPlayerF1Car(ctx, w, h, horizonY);
+
+        // Rivales que acaban de ser adelantados salen suavemente por detrás del jugador
+        behindRivals.forEach((b) => {
+            drawF1CarRearView(
+                ctx,
+                b.rx,
+                b.ry - 12 * b.carScale,
+                b.carScale,
+                b.rival.color,
+                b.rival.number,
+                b.rival.rider,
+                b.tilt,
+                false,
+                false
+            );
+        });
 
         // 6. LÍNEAS DE VELOCIDAD DINÁMICAS
         if (this.turboTimer > 0 || this.speed > 180) {
