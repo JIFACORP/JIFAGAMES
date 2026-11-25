@@ -184,23 +184,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.soundController) window.soundController.playHorn();
     });
 
-    // Controles Táctiles (Juego 2: Pista de Esquivar)
-    btnLaneLeft.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (lanesGame) lanesGame.moveLeft();
-    });
+    // Controles Táctiles (Juego 2: Carrera F1) - Soporte para mantener presionado
+    setupHoldButton(btnLaneLeft,
+        () => { if (lanesGame) lanesGame.moveLeft(); },
+        () => { if (lanesGame) lanesGame.stopSteer(); }
+    );
 
-    btnLaneRight.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (lanesGame) lanesGame.moveRight();
-    });
-
-    if (btnLaneHorn) {
-        btnLaneHorn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (window.soundController) window.soundController.playHorn();
-        });
-    }
+    setupHoldButton(btnLaneRight,
+        () => { if (lanesGame) lanesGame.moveRight(); },
+        () => { if (lanesGame) lanesGame.stopSteer(); }
+    );
 
     // 7. Controles de Teclado (Ideal para PC / Laptop)
     window.addEventListener('keydown', (e) => {
@@ -214,9 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (currentScreen === 'lanes' && lanesGame) {
             if (e.code === 'ArrowLeft' || e.code === 'KeyA') lanesGame.moveLeft();
             if (e.code === 'ArrowRight' || e.code === 'KeyD') lanesGame.moveRight();
-            if (e.code === 'KeyH' || e.code === 'KeyB' || e.code === 'Space') {
-                if (window.soundController) window.soundController.playHorn();
-            }
         }
     });
 
@@ -224,6 +214,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentScreen === 'hills' && hillsGame) {
             if (e.code === 'ArrowRight' || e.code === 'KeyD') hillsGame.keys.gas = false;
             if (e.code === 'ArrowLeft' || e.code === 'KeyA') hillsGame.keys.brake = false;
+        } else if (currentScreen === 'lanes' && lanesGame) {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA' || e.code === 'ArrowRight' || e.code === 'KeyD') {
+                lanesGame.stopSteer();
+            }
         }
     });
 

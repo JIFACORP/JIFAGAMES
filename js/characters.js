@@ -548,3 +548,270 @@ function drawF1PilotHead(ctx, x, y, helmetColor, rider) {
 
     ctx.restore();
 }
+
+// =======================================================
+// 3. AUTO DE FÓRMULA 1 EN PERSPECTIVA 3D (VISTA TRASERA)
+// =======================================================
+function drawF1CarRearView(ctx, x, y, scale = 1, carColor = '#FF3B30', number = 1, rider = 'perrito', tilt = 0, hasTurbo = false, isSkidding = false) {
+    if (scale <= 0.05) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+
+    // Inclinación suave de la carrocería en curvas
+    const rollAngle = tilt * 0.12 + (isSkidding ? Math.sin(Date.now() * 0.04) * 0.15 : 0);
+    ctx.rotate(rollAngle);
+
+    // 1. Sombra aerodinámica bajo el auto
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.beginPath();
+    ctx.ellipse(0, 20, 56, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Humo de derrape si patina en aceite
+    if (isSkidding && Math.random() < 0.6) {
+        ctx.fillStyle = 'rgba(80, 80, 80, 0.7)';
+        ctx.beginPath();
+        ctx.arc(-42 + (Math.random() - 0.5) * 10, 16, 8 + Math.random() * 8, 0, Math.PI * 2);
+        ctx.arc(42 + (Math.random() - 0.5) * 10, 16, 8 + Math.random() * 8, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // 3. Fuego / Llamas de Escape Nitro
+    if (hasTurbo || Math.random() < 0.8) {
+        const flameLen = hasTurbo ? 32 + Math.random() * 18 : 12 + Math.random() * 8;
+        const flameColOuter = hasTurbo ? '#00e5ff' : '#FF9500';
+        const flameColInner = hasTurbo ? '#ffffff' : '#FFEB3B';
+
+        [-9, 9].forEach(exX => {
+            ctx.fillStyle = flameColOuter;
+            ctx.beginPath();
+            ctx.moveTo(exX - 4, 14);
+            ctx.lineTo(exX, 14 + flameLen);
+            ctx.lineTo(exX + 4, 14);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = flameColInner;
+            ctx.beginPath();
+            ctx.moveTo(exX - 2, 14);
+            ctx.lineTo(exX, 14 + flameLen * 0.6);
+            ctx.lineTo(exX + 2, 14);
+            ctx.closePath();
+            ctx.fill();
+        });
+    }
+
+    // 4. Brazos de suspensión traseros
+    ctx.strokeStyle = '#333333';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-20, 4);  ctx.lineTo(-44, 4);
+    ctx.moveTo(-18, 14); ctx.lineTo(-44, 14);
+    ctx.moveTo(20, 4);   ctx.lineTo(44, 4);
+    ctx.moveTo(18, 14);  ctx.lineTo(44, 14);
+    ctx.stroke();
+
+    // 5. Ruedas Delanteras asomándose al girar
+    const steerOffset = tilt * 8;
+    ctx.fillStyle = '#1A1A1A';
+    ctx.beginPath();
+    ctx.roundRect(-46 + steerOffset, -14, 14, 28, 4);
+    ctx.roundRect(32 + steerOffset, -14, 14, 28, 4);
+    ctx.fill();
+
+    // 6. Ruedas Traseras Gigantes (Slicks anchos de F1)
+    [-46, 26].forEach(wX => {
+        // Goma negra
+        ctx.fillStyle = '#181818';
+        ctx.beginPath();
+        ctx.roundRect(wX, -4, 20, 36, 6);
+        ctx.fill();
+
+        // Banda amarilla de Pirelli F1
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(wX + 3, -1, 14, 30, 4);
+        ctx.stroke();
+
+        // Tuerca central
+        ctx.fillStyle = '#CCCCCC';
+        ctx.beginPath();
+        ctx.arc(wX + 10, 14, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // 7. Difusor Trasero de Fibra de Carbono
+    ctx.fillStyle = '#111111';
+    ctx.beginPath();
+    ctx.roundRect(-24, 10, 48, 12, 3);
+    ctx.fill();
+
+    // Aletas del difusor
+    ctx.fillStyle = '#222222';
+    for (let i = -16; i <= 16; i += 8) {
+        ctx.fillRect(i - 1, 10, 2, 12);
+    }
+
+    // Luz de lluvia roja F1 parpadeante en el centro
+    const rainLightOn = Math.floor(Date.now() / 150) % 2 === 0;
+    ctx.fillStyle = rainLightOn ? '#FF1744' : '#550000';
+    ctx.beginPath();
+    ctx.roundRect(-4, 12, 8, 6, 2);
+    ctx.fill();
+    if (rainLightOn) {
+        ctx.shadowColor = '#FF1744';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    // 8. Chasis / Carrocería Trasera con color deportivo
+    const bodyGrad = ctx.createLinearGradient(-26, 0, 26, 0);
+    bodyGrad.addColorStop(0, carColor);
+    bodyGrad.addColorStop(0.5, lightenColor(carColor, 25));
+    bodyGrad.addColorStop(1, carColor);
+
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    ctx.moveTo(-24, 12);
+    ctx.lineTo(-24, -2);
+    ctx.lineTo(-12, -26);
+    ctx.lineTo(12, -26);
+    ctx.lineTo(24, -2);
+    ctx.lineTo(24, 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Aleta de tiburón dorsal (Shark fin)
+    ctx.fillStyle = '#1A1A1A';
+    ctx.beginPath();
+    ctx.moveTo(0, -28);
+    ctx.lineTo(0, 4);
+    ctx.lineTo(-2, 4);
+    ctx.lineTo(-2, -28);
+    ctx.fill();
+
+    // Toma de aire superior negra (Airbox)
+    ctx.fillStyle = '#111111';
+    ctx.beginPath();
+    ctx.ellipse(0, -26, 6, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 9. Piloto y Casco en el Cockpit
+    drawF1PilotRear(ctx, 0, -12, carColor, rider);
+
+    // 10. Gran Alerón Trasero de F1 (Rear Wing)
+    ctx.fillStyle = '#222222';
+    ctx.fillRect(-7, -18, 3, 18);
+    ctx.fillRect(4, -18, 3, 18);
+
+    const wingGrad = ctx.createLinearGradient(-48, -26, 48, -26);
+    wingGrad.addColorStop(0, carColor);
+    wingGrad.addColorStop(0.5, lightenColor(carColor, 35));
+    wingGrad.addColorStop(1, carColor);
+
+    ctx.fillStyle = wingGrad;
+    ctx.beginPath();
+    ctx.roundRect(-46, -26, 92, 11, 2);
+    ctx.fill();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Endplates laterales verticales del alerón
+    ctx.fillStyle = '#181818';
+    ctx.beginPath();
+    ctx.roundRect(-49, -32, 6, 20, 2);
+    ctx.roundRect(43, -32, 6, 20, 2);
+    ctx.fill();
+
+    // Número de carrera en el centro del alerón
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(0, -20.5, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 8px "Arial Rounded MT Bold", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${number}`, 0, -20.5);
+
+    ctx.restore();
+}
+
+function drawF1PilotRear(ctx, x, y, helmetColor, rider) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.fillStyle = helmetColor;
+    ctx.beginPath();
+    ctx.arc(0, 0, 8.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#FFD700';
+    ctx.fillRect(-6, -2, 12, 3);
+
+    if (rider === 'perrito') {
+        ctx.fillStyle = '#8B5A2B';
+        ctx.beginPath();
+        ctx.ellipse(-8, 1, 3, 5, -0.3, 0, Math.PI * 2);
+        ctx.ellipse(8, 1, 3, 5, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (rider === 'gatito') {
+        ctx.fillStyle = '#FFB6C1';
+        ctx.beginPath();
+        ctx.moveTo(-6, -4); ctx.lineTo(-9, -11); ctx.lineTo(-2, -8);
+        ctx.moveTo(6, -4); ctx.lineTo(9, -11); ctx.lineTo(2, -8);
+        ctx.fill();
+    } else if (rider === 'dino') {
+        ctx.fillStyle = '#FFD700';
+        for (let i = -2; i <= 2; i++) {
+            ctx.beginPath();
+            ctx.moveTo(i * 3 - 1.5, -9);
+            ctx.lineTo(i * 3, -14);
+            ctx.lineTo(i * 3 + 1.5, -9);
+            ctx.fill();
+        }
+    } else if (rider === 'osito') {
+        ctx.fillStyle = '#A0522D';
+        ctx.beginPath();
+        ctx.arc(-7, -5, 3.5, 0, Math.PI * 2);
+        ctx.arc(7, -5, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (rider === 'leon') {
+        ctx.fillStyle = '#E65100';
+        ctx.beginPath();
+        ctx.arc(0, 0, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = helmetColor;
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+function lightenColor(col, amt) {
+    let usePound = false;
+    if (col[0] === '#') {
+        col = col.slice(1);
+        usePound = true;
+    }
+    const num = parseInt(col, 16);
+    let r = (num >> 16) + amt;
+    let b = ((num >> 8) & 0x00FF) + amt;
+    let g = (num & 0x0000FF) + amt;
+    r = Math.min(255, Math.max(0, r));
+    b = Math.min(255, Math.max(0, b));
+    g = Math.min(255, Math.max(0, g));
+    return (usePound ? '#' : '') + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+}
