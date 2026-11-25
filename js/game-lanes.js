@@ -491,7 +491,7 @@ class LanesGame {
         const curCurve = this.getSegmentCurveInterpolated(currCarZ / this.segmentLength);
         const speedRatio = Math.min(1.35, this.speed / 245);
         this.playerX -= curCurve * 0.0020 * speedRatio * dtFactor;
-        this.skyOffset = (this.skyOffset || 0) + curCurve * (unitsMoved / this.segmentLength) * 14;
+        this.skyOffset = (this.skyOffset || 0) + curCurve * (unitsMoved / this.segmentLength) * 3.5;
 
         const steerSpeed = 0.044 * (this.turboTimer > 0 ? 1.15 : 1) * dtFactor;
         if (this.steerInput !== 0) {
@@ -715,7 +715,7 @@ class LanesGame {
         const projectedSegments = [];
         const firstAheadSeg = Math.floor(this.playerZ / this.segmentLength) + 1;
         const playerPercent = (this.playerZ % this.segmentLength) / this.segmentLength;
-        const firstCurve = this.getSegmentCurve(firstAheadSeg) * 0.22;
+        const firstCurve = this.getSegmentCurve(firstAheadSeg) * 0.26;
 
         let curveX = 0;
         let dx = -(firstCurve * playerPercent);
@@ -728,7 +728,7 @@ class LanesGame {
 
             // Solo acumular curvatura por delante del jugador (con inicialización fraccionaria sin saltos)
             if (segZ > this.playerZ) {
-                dx += this.getSegmentCurve(segIndex) * 0.22;
+                dx += this.getSegmentCurve(segIndex) * 0.26;
                 curveX += dx;
             }
 
@@ -977,39 +977,78 @@ class LanesGame {
         ctx.fillStyle = skyGrad;
         ctx.fillRect(0, 0, w, horizonY);
 
-        // Sol brillante
-        ctx.fillStyle = '#FFF9A6';
-        ctx.beginPath();
-        ctx.arc(w * 0.8, horizonY * 0.35, 38, 0, Math.PI * 2);
-        ctx.fill();
-
         const skyShift = this.skyOffset || 0;
 
-        // Cordillera chilena de fondo (se desplaza al doblar curvas)
+        // Sol brillante con paralaje suave al girar en curvas
+        const sunWrap = w + 180;
+        const sunX = ((((w * 0.8 - skyShift * 0.28) % sunWrap) + sunWrap) % sunWrap) - 90;
+        ctx.fillStyle = '#FFF9A6';
+        ctx.beginPath();
+        ctx.arc(sunX, horizonY * 0.34, 36, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Nubes suaves rígidas que rotan con el cielo
+        const cloudTileW = 720;
+        const cloudShift = ((skyShift * 0.45) % cloudTileW + cloudTileW) % cloudTileW;
+        ctx.save();
+        ctx.translate(-cloudShift, 0);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.42)';
+        const cloudCount = Math.ceil((w + cloudTileW) / cloudTileW) + 1;
+        for (let rep = 0; rep < cloudCount; rep++) {
+            const bx = rep * cloudTileW;
+            [[110, 0.28, 34], [360, 0.20, 26], [590, 0.32, 30]].forEach(([cx, cyf, cr]) => {
+                const cy = horizonY * cyf;
+                ctx.beginPath();
+                ctx.arc(bx + cx, cy, cr, 0, Math.PI * 2);
+                ctx.arc(bx + cx + cr * 0.75, cy + 4, cr * 0.72, 0, Math.PI * 2);
+                ctx.arc(bx + cx - cr * 0.75, cy + 5, cr * 0.68, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+        ctx.restore();
+
+        // Cordillera chilena rígida (geometría periódica continua: no se deforma ni "baila")
+        const tileW = 720;
+        const shift = ((skyShift % tileW) + tileW) % tileW;
+        const step = 24;
+        const totalSpan = Math.ceil((w + tileW) / tileW) * tileW + tileW;
+        const mountainYAt = (mx) => {
+            const ph = (mx / tileW) * Math.PI * 2;
+            return horizonY - 40 - Math.sin(ph * 2) * 26 - Math.cos(ph * 3) * 18 - Math.sin(ph * 5) * 7;
+        };
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, w, horizonY + 1);
+        ctx.clip();
+        ctx.translate(-shift, 0);
+
         ctx.fillStyle = track.mountainColor;
         ctx.beginPath();
         ctx.moveTo(0, horizonY);
-        for (let x = -50; x <= w + 50; x += 60) {
-            const my = horizonY - 45 - Math.sin((x + skyShift) * 0.012) * 35 - Math.cos((x + skyShift * 0.7) * 0.02) * 20;
-            ctx.lineTo(x, my);
+        for (let mx = 0; mx <= totalSpan; mx += step) {
+            ctx.lineTo(mx, mountainYAt(mx));
         }
-        ctx.lineTo(w, horizonY);
+        ctx.lineTo(totalSpan, horizonY);
         ctx.closePath();
         ctx.fill();
 
-        // Cumbres nevadas
+        // Cumbres nevadas fijas a las mismas cimas rígidas
         ctx.fillStyle = track.mountainPeak;
         ctx.beginPath();
-        for (let x = -50; x <= w + 50; x += 60) {
-            const peakY = horizonY - 45 - Math.sin((x + skyShift) * 0.012) * 35 - Math.cos((x + skyShift * 0.7) * 0.02) * 20;
-            if (peakY < horizonY - 55) {
-                ctx.moveTo(x - 20, peakY + 18);
-                ctx.lineTo(x, peakY);
-                ctx.lineTo(x + 20, peakY + 18);
+        for (let mx = step; mx < totalSpan - step; mx += step) {
+            const yL = mountainYAt(mx - step);
+            const yC = mountainYAt(mx);
+            const yR = mountainYAt(mx + step);
+            if (yC <= yL && yC < yR && yC < horizonY - 52) {
+                ctx.moveTo(mx - 22, yC + 20);
+                ctx.lineTo(mx, yC);
+                ctx.lineTo(mx + 22, yC + 20);
                 ctx.closePath();
             }
         }
         ctx.fill();
+        ctx.restore();
     }
 
     // POTENCIADOR DE VELOCIDAD: LATA DE RED BULL FLOTANDO EN LA PISTA
@@ -1327,6 +1366,8 @@ class LanesGame {
         const isSkidding = this.skidTimer > 0;
         const teamId = GAME_CONFIG.selectedTeam || 'ferrari';
         const teamNum = GAME_CONFIG.teams && GAME_CONFIG.teams[teamId] ? GAME_CONFIG.teams[teamId].number : 1;
+        const curCurve = this.getSegmentCurveInterpolated(playerCarZ / this.segmentLength);
+        const visualTilt = Math.max(-1.45, Math.min(1.45, this.tilt * 1.35 + curCurve * 0.04));
 
         drawF1CarRearView(
             ctx,
@@ -1336,7 +1377,7 @@ class LanesGame {
             GAME_CONFIG.selectedColor,
             teamNum,
             GAME_CONFIG.selectedRider,
-            this.tilt,
+            visualTilt,
             hasTurbo,
             isSkidding,
             teamId

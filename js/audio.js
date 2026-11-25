@@ -223,42 +223,54 @@ class SoundController {
         });
     }
 
-    // Sonido de motor suave y amigable (ronroneo grave sin zumbido áspero)
+    // Sonido aerodinámico muy suave (brisa / rodaje sobre asfalto sin zumbido electrónico)
     startEngine() {
         if (this.muted || this.isEngineRunning) return;
         this.init();
         try {
             const now = this.ctx.currentTime;
-            this.engineOsc = this.ctx.createOscillator();
-            this.engineHarmonic = this.ctx.createOscillator();
+            const sr = this.ctx.sampleRate || 44100;
+            const len = Math.floor(sr * 2.0);
+            const buffer = this.ctx.createBuffer(1, len, sr);
+            const data = buffer.getChannelData(0);
+
+            // Ruido rosa cálido (suena como aire y neumáticos, sin tono molesto)
+            let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+            for (let i = 0; i < len; i++) {
+                const white = Math.random() * 2 - 1;
+                b0 = 0.99886 * b0 + white * 0.0555179;
+                b1 = 0.99332 * b1 + white * 0.0750759;
+                b2 = 0.96900 * b2 + white * 0.1538520;
+                b3 = 0.86650 * b3 + white * 0.3104856;
+                b4 = 0.55000 * b4 + white * 0.5329522;
+                b5 = -0.7616 * b5 - white * 0.0168980;
+                data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.04;
+                b6 = white * 0.115926;
+            }
+            // Crossfade en los extremos del bucle para transición 100% invisible
+            const fade = Math.min(4096, Math.floor(len * 0.05));
+            for (let i = 0; i < fade; i++) {
+                const a = i / fade;
+                data[i] = data[i] * a + data[len - fade + i] * (1 - a);
+            }
+
+            this.engineOsc = this.ctx.createBufferSource();
+            this.engineOsc.buffer = buffer;
+            this.engineOsc.loop = true;
+
             this.engineFilter = this.ctx.createBiquadFilter();
-            this.engineGain = this.ctx.createGain();
-
-            // Onda senoidal cálida + armónico triangular suave en quinta justa (acorde amigable)
-            this.engineOsc.type = 'sine';
-            this.engineOsc.frequency.setValueAtTime(64, now);
-
-            this.engineHarmonic.type = 'triangle';
-            this.engineHarmonic.frequency.setValueAtTime(96, now);
-
-            // Filtro pasa-bajos muy suave para eliminar frecuencias chillonas
             this.engineFilter.type = 'lowpass';
-            this.engineFilter.frequency.setValueAtTime(190, now);
-            this.engineFilter.Q.setValueAtTime(0.9, now);
+            this.engineFilter.frequency.setValueAtTime(160, now);
+            this.engineFilter.Q.setValueAtTime(0.7, now);
 
-            const harmonicGain = this.ctx.createGain();
-            harmonicGain.gain.setValueAtTime(0.32, now);
-
-            this.engineGain.gain.setValueAtTime(0.018, now);
+            this.engineGain = this.ctx.createGain();
+            this.engineGain.gain.setValueAtTime(0.012, now);
 
             this.engineOsc.connect(this.engineFilter);
-            this.engineHarmonic.connect(harmonicGain);
-            harmonicGain.connect(this.engineFilter);
             this.engineFilter.connect(this.engineGain);
             this.engineGain.connect(this.ctx.destination);
 
             this.engineOsc.start(now);
-            this.engineHarmonic.start(now);
             this.isEngineRunning = true;
         } catch (e) {
             console.warn("AudioContext engine error", e);
@@ -269,16 +281,12 @@ class SoundController {
         if (!this.isEngineRunning || this.muted || !this.engineOsc) return;
         const now = this.ctx.currentTime;
         const clamped = Math.max(0, Math.min(1.35, speedRatio || 0));
-        const baseFreq = 58 + clamped * 56 + (isAccelerating ? 8 : 0); // Rango cálido 58–141 Hz
-        this.engineOsc.frequency.setTargetAtTime(baseFreq, now, 0.12);
-        if (this.engineHarmonic) {
-            this.engineHarmonic.frequency.setTargetAtTime(baseFreq * 1.5, now, 0.12);
-        }
         if (this.engineFilter) {
-            this.engineFilter.frequency.setTargetAtTime(175 + clamped * 125, now, 0.12);
+            const cutoff = 140 + clamped * 230 + (isAccelerating ? 40 : 0);
+            this.engineFilter.frequency.setTargetAtTime(cutoff, now, 0.14);
         }
-        const targetGain = isAccelerating ? (0.022 + clamped * 0.012) : 0.014;
-        this.engineGain.gain.setTargetAtTime(targetGain, now, 0.12);
+        const targetGain = isAccelerating ? (0.016 + clamped * 0.014) : 0.008;
+        this.engineGain.gain.setTargetAtTime(targetGain, now, 0.14);
     }
 
     stopEngine() {
