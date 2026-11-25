@@ -78,7 +78,7 @@ class LanesGame {
 
         // Configuración del mundo 3D
         this.trackLength = 54000;   // ~60 segundos a velocidad F1 (245 km/h = 15 u/frame)
-        this.segmentLength = 100;   // 540 segmentos
+        this.segmentLength = 150;   // Bloques más largos para eliminar parpadeo (titileo) en curvas
         this.worldHalfW = 550;      // Pista más ancha para comodidad y adelantamientos
         this.cameraY = 850;         // Altura de cámara sobre el asfalto
 
@@ -215,9 +215,10 @@ class LanesGame {
         }
     }
 
-    // Curva del segmento (para acumulación estilo OutRun)
+    // Curva del segmento basada en posición Z real (suave y sin saltos)
     getSegmentCurve(segIndex) {
-        return Math.sin(segIndex * 0.065) * 6 + Math.cos(segIndex * 0.03) * 4;
+        const z = segIndex * this.segmentLength;
+        return Math.sin(z * 0.0005) * 6 + Math.cos(z * 0.00025) * 3.5;
     }
 
     // Elevación del segmento (colinas suaves)
@@ -469,13 +470,13 @@ class LanesGame {
         const cameraY = this.cameraY + this.getRoadHill(this.playerZ);
         const camOffsetX = this.playerX * this.worldHalfW * 0.65;
 
-        const drawDistance = 60;
+        const drawDistance = 100;
         const baseSeg = Math.floor(cameraZ / this.segmentLength);
 
         const projectedSegments = [];
         const firstAheadSeg = Math.floor(this.playerZ / this.segmentLength) + 1;
         const playerPercent = (this.playerZ % this.segmentLength) / this.segmentLength;
-        const firstCurve = this.getSegmentCurve(firstAheadSeg) * 0.15;
+        const firstCurve = this.getSegmentCurve(firstAheadSeg) * 0.14;
 
         let curveX = 0;
         let dx = -(firstCurve * playerPercent);
@@ -488,14 +489,15 @@ class LanesGame {
 
             // Solo acumular curvatura por delante del jugador (con inicialización fraccionaria sin saltos)
             if (segZ > this.playerZ) {
-                dx += this.getSegmentCurve(segIndex) * 0.15;
+                dx += this.getSegmentCurve(segIndex) * 0.14;
                 curveX += dx;
             }
 
             const proj = this.project(curveX, segY, segZ, camOffsetX, cameraY, cameraZ, horizonY, w, h);
             if (!proj) continue;
 
-            const isAlt = (segIndex % 2) === 0;
+            // Bandas amplias cada 2 segmentos (evita efecto estroboscópico/parpadeo en curvas)
+            const isAlt = (Math.floor(segIndex / 2) % 2) === 0;
             const clipY = maxY;
             const visible = proj.y < maxY;
             if (visible) {
@@ -705,10 +707,10 @@ class LanesGame {
 
     drawTrapezoid(ctx, x1, y1, x2, y1_b, x3, y2, x4, y2_b) {
         ctx.beginPath();
-        ctx.moveTo(x1, y1 + 0.5);
-        ctx.lineTo(x2, y1_b + 0.5);
-        ctx.lineTo(x4, y2_b - 0.5);
-        ctx.lineTo(x3, y2 - 0.5);
+        ctx.moveTo(x1, y1 + 0.25);
+        ctx.lineTo(x2, y1_b + 0.25);
+        ctx.lineTo(x4, y2_b - 0.25);
+        ctx.lineTo(x3, y2 - 0.25);
         ctx.closePath();
         ctx.fill();
     }
@@ -737,7 +739,7 @@ class LanesGame {
         ctx.arc(w * 0.8, horizonY * 0.35, 38, 0, Math.PI * 2);
         ctx.fill();
 
-        const curveOffset = this.getSegmentCurve(this.playerZ / 100) * 2.5;
+        const curveOffset = this.getSegmentCurve(this.playerZ / this.segmentLength) * 2.5;
 
         // Cordillera chilena de fondo
         ctx.fillStyle = track.mountainColor;
