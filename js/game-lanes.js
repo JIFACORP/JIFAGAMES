@@ -77,8 +77,8 @@ class LanesGame {
         this.currentTrackIndex = 0;
 
         // Configuración del mundo 3D
-        this.trackLength = 36000;   // ~60 segundos a 600 unidades/segundo (10 u/frame)
-        this.segmentLength = 100;   // 360 segmentos
+        this.trackLength = 54000;   // ~60 segundos a velocidad F1 (245 km/h = 15 u/frame)
+        this.segmentLength = 100;   // 540 segmentos
         this.worldHalfW = 460;      // Mitad del ancho de la carretera en el mundo
         this.cameraY = 850;         // Altura de cámara sobre el asfalto
 
@@ -102,8 +102,8 @@ class LanesGame {
 
         this.playerX = 0;       // -1 (izquierda) a +1 (derecha)
         this.playerZ = 0;       // Distancia recorrida
-        this.speed = 0;         // Velocidad visual en km/h (0 - 230)
-        this.targetSpeed = 160; // Crucero: 160 km/h (= 10 u/frame)
+        this.speed = 0;         // Velocidad visual en km/h (0 - 335)
+        this.targetSpeed = 245; // Crucero F1 estándar: 245 km/h (= 15 u/frame)
         this.turboTimer = 0;
         this.skidTimer = 0;
         this.steerInput = 0;
@@ -117,9 +117,7 @@ class LanesGame {
         this.confetti = [];
         this.overtakePopups = [];
 
-        // 5 AUTOS RIVALES CALIBRADOS PARA SER 100% ALCANZABLES EN 1 MINUTO
-        // A velocidad de jugador = 10 u/frame (600 u/seg):
-        // Cada rival va entre 7.1 y 8.2 u/frame, por lo que los alcanzas cada ~10-12 segundos
+        // 5 AUTOS RIVALES CALIBRADOS PARA SER 100% ALCANZABLES EN 1 MINUTO A VELOCIDAD F1 (15 u/frame = 900 u/s)
         this.rivals = [
             {
                 id: 5,
@@ -127,9 +125,9 @@ class LanesGame {
                 color: '#006F62',
                 number: 14,
                 rider: 'leon',
-                z: 1700,      // Alcanzado aprox. a los 10s
+                z: 2550,      // Alcanzado aprox. a los 10s
                 x: -0.45,
-                speedUnits: 7.1, // 426 u/s
+                speedUnits: 10.65,
                 overtaken: false,
                 wobble: 0
             },
@@ -139,9 +137,9 @@ class LanesGame {
                 color: '#FF8000',
                 number: 4,
                 rider: 'conejo',
-                z: 3300,      // Alcanzado aprox. a los 22s
+                z: 4950,      // Alcanzado aprox. a los 22s
                 x: 0.45,
-                speedUnits: 7.5, // 450 u/s
+                speedUnits: 11.25,
                 overtaken: false,
                 wobble: 0
             },
@@ -151,9 +149,9 @@ class LanesGame {
                 color: '#00D2BE',
                 number: 44,
                 rider: 'zorro',
-                z: 4700,      // Alcanzado aprox. a los 35s -> ¡PODIO 3º!
+                z: 7050,      // Alcanzado aprox. a los 35s -> ¡PODIO 3º!
                 x: -0.35,
-                speedUnits: 7.75, // 465 u/s
+                speedUnits: 11.62,
                 overtaken: false,
                 wobble: 0
             },
@@ -163,9 +161,9 @@ class LanesGame {
                 color: '#0600EF',
                 number: 33,
                 rider: 'tigre',
-                z: 5650,      // Alcanzado aprox. a los 47s -> ¡PODIO 2º!
+                z: 8460,      // Alcanzado aprox. a los 47s -> ¡PODIO 2º!
                 x: 0.35,
-                speedUnits: 8.0, // 480 u/s
+                speedUnits: 12.0,
                 overtaken: false,
                 wobble: 0
             },
@@ -175,17 +173,17 @@ class LanesGame {
                 color: '#FF1801',
                 number: 16,
                 rider: 'leon',
-                z: 5900,      // Alcanzado aprox. a los 55s -> ¡1º LUGAR 🏆!
+                z: 8850,      // Alcanzado aprox. a los 56s -> ¡1º LUGAR 🏆!
                 x: 0.0,
-                speedUnits: 8.25, // 495 u/s
+                speedUnits: 12.38,
                 overtaken: false,
                 wobble: 0
             }
         ];
 
-        // EXACTAMENTE 2 ITEMS EN PISTA: 'speed' (Flechas Turbo) y 'oil' (Charco de Aceite)
+        // EXACTAMENTE 2 ITEMS EN PISTA: 'speed' (Lata Red Bull Turbo) y 'oil' (Charco de Aceite)
         this.items = [];
-        for (let z = 1200; z < this.trackLength - 1500; z += 1400) {
+        for (let z = 1800; z < this.trackLength - 2000; z += 1900) {
             const laneX = (Math.random() - 0.5) * 1.2;
             const type = Math.random() < 0.55 ? 'speed' : 'oil';
             this.items.push({
@@ -199,14 +197,14 @@ class LanesGame {
         // DECORACIONES DE PAISAJE CHILENO A LOS COSTADOS DEL CAMINO
         this.props = [];
         const decTypes = track.decorations;
-        for (let z = 400; z < this.trackLength + 3000; z += 650) {
+        for (let z = 600; z < this.trackLength + 3000; z += 850) {
             this.props.push({
                 z: z,
                 x: -1.45 - Math.random() * 0.6,
                 type: decTypes[Math.floor(Math.random() * decTypes.length)]
             });
             this.props.push({
-                z: z + 325,
+                z: z + 425,
                 x: 1.45 + Math.random() * 0.6,
                 type: decTypes[Math.floor(Math.random() * decTypes.length)]
             });
@@ -240,13 +238,13 @@ class LanesGame {
     }
 
     triggerSpeedBoost() {
-        this.turboTimer = 60; // ~1 segundo de turbo intenso
+        this.turboTimer = 65; // ~1.1 segundos de super velocidad Red Bull
         this.skidTimer = 0;
         if (window.soundController) {
             window.soundController.playTurbo();
         }
         this.overtakePopups.push({
-            text: '⚡ ¡TURBO! ⚡',
+            text: '⚡ ¡RED BULL TURBO! ⚡',
             color: '#00E5FF',
             y: this.getH() * 0.45,
             life: 45
@@ -288,7 +286,7 @@ class LanesGame {
 
         if (this.won) {
             this.speed *= Math.pow(0.95, dtFactor);
-            this.playerZ += (this.speed * 0.0625) * dtFactor;
+            this.playerZ += (this.speed * 0.06122) * dtFactor;
             this.confetti.forEach((c) => {
                 c.y += c.vy * dtFactor;
                 c.x += c.vx * dtFactor;
@@ -297,25 +295,25 @@ class LanesGame {
             return;
         }
 
-        // 2. VELOCIDAD Y DIRECCIÓN DEL JUGADOR
+        // 2. VELOCIDAD F1 AUMENTADA Y DIRECCIÓN DEL JUGADOR
         if (this.turboTimer > 0) {
             this.turboTimer -= dtFactor;
-            this.targetSpeed = 235;
+            this.targetSpeed = 335; // 335 km/h Turbo Red Bull
         } else if (this.skidTimer > 0) {
             this.skidTimer -= dtFactor;
-            this.targetSpeed = 95;
+            this.targetSpeed = 135; // 135 km/h en Aceite
         } else {
-            this.targetSpeed = 160;
+            this.targetSpeed = 245; // 245 km/h Velocidad estándar F1
         }
 
         this.speed += (this.targetSpeed - this.speed) * 0.1 * dtFactor;
 
-        // A 160 km/h avanza exactamente 10 unidades por frame (600 u/s)
-        const unitsMoved = (this.speed * 0.0625) * dtFactor;
+        // A 245 km/h avanza 15 unidades por frame (900 u/s)
+        const unitsMoved = (this.speed * 0.06122) * dtFactor;
         this.playerZ += unitsMoved;
 
-        // Volante suave
-        const steerSpeed = 0.038 * (this.turboTimer > 0 ? 1.15 : 1) * dtFactor;
+        // Volante rápido y suave para velocidad de F1
+        const steerSpeed = 0.042 * (this.turboTimer > 0 ? 1.15 : 1) * dtFactor;
         if (this.steerInput !== 0) {
             this.playerX += this.steerInput * steerSpeed;
             this.tilt += (this.steerInput - this.tilt) * 0.22 * dtFactor;
@@ -326,13 +324,13 @@ class LanesGame {
         this.playerX = Math.max(-0.92, Math.min(0.92, this.playerX));
 
         if (window.soundController) {
-            window.soundController.updateEngine(this.speed / 200, true);
+            window.soundController.updateEngine(this.speed / 260, true);
         }
 
-        // 3. COLISIÓN CON ITEMS (Flechas de Velocidad y Aceite)
+        // 3. COLISIÓN CON ITEMS (Lata Red Bull y Aceite)
         this.items.forEach((item) => {
-            if (!item.hit && Math.abs(item.z - this.playerZ) < 120) {
-                if (Math.abs(item.x - this.playerX) < 0.34) {
+            if (!item.hit && Math.abs(item.z - this.playerZ) < 150) {
+                if (Math.abs(item.x - this.playerX) < 0.36) {
                     item.hit = true;
                     if (item.type === 'speed') {
                         this.triggerSpeedBoost();
@@ -662,9 +660,9 @@ class LanesGame {
             );
         });
 
-        // 6. LÍNEAS DE VELOCIDAD DINÁMICAS
-        if (this.turboTimer > 0 || this.speed > 180) {
-            this.drawSpeedLines(ctx, w, h);
+        // 6. LÍNEAS DE VELOCIDAD DINÁMICAS (Sutiles en crucero F1, intensas en Red Bull Turbo)
+        if (this.turboTimer > 0 || this.speed > 215) {
+            this.drawSpeedLines(ctx, w, h, this.turboTimer > 0);
         }
 
         // 7. PARTÍCULAS Y POPUPS
@@ -764,28 +762,113 @@ class LanesGame {
         ctx.fill();
     }
 
+    // POTENCIADOR DE VELOCIDAD: LATA DE RED BULL FLOTANDO EN LA PISTA
     drawSpeedPad3D(ctx, x, y, scale) {
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(scale * 1.1, scale * 0.55);
+        const canScale = scale * 1.35;
+        ctx.scale(canScale, canScale);
 
-        ctx.fillStyle = '#00E5FF';
+        const bob = Math.sin(Date.now() * 0.008) * 5;
+
+        // Sombra brillante energética en el asfalto
+        ctx.fillStyle = 'rgba(0, 229, 255, 0.35)';
+        ctx.beginPath();
+        ctx.ellipse(0, 2, 24, 9, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.translate(0, -28 + bob);
+        ctx.rotate(Math.sin(Date.now() * 0.004) * 0.08);
+
+        // Cuerpo cilíndrico de la lata
+        const canW = 28;
+        const canH = 50;
+        const halfW = canW / 2;
+        const halfH = canH / 2;
+
+        // Resplandor detrás de la lata
         ctx.shadowColor = '#00E5FF';
         ctx.shadowBlur = 12;
 
-        for (let i = 0; i < 3; i++) {
-            const ay = -i * 22;
-            ctx.beginPath();
-            ctx.moveTo(0, ay - 16);
-            ctx.lineTo(24, ay);
-            ctx.lineTo(10, ay);
-            ctx.lineTo(10, ay + 12);
-            ctx.lineTo(-10, ay + 12);
-            ctx.lineTo(-10, ay);
-            ctx.lineTo(-24, ay);
-            ctx.closePath();
-            ctx.fill();
-        }
+        // Cuadros icónicos Azul Rey (#0B3B8C) y Plata (#E6EAEE) de Red Bull
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(-halfW, -halfH, canW, canH, 5);
+        ctx.clip();
+
+        // Fondo Plata Metálico
+        ctx.fillStyle = '#E6EAEE';
+        ctx.fillRect(-halfW, -halfH, canW, canH);
+
+        // Cuadrantes Azul Rey
+        ctx.fillStyle = '#0B3B8C';
+        ctx.fillRect(-halfW, -halfH, halfW, halfH);     // Arriba Izquierda
+        ctx.fillRect(0, 0, halfW, halfH);               // Abajo Derecha
+
+        // Brillo vertical cilíndrico en la lata
+        const gloss = ctx.createLinearGradient(-halfW, 0, halfW, 0);
+        gloss.addColorStop(0, 'rgba(0,0,0,0.2)');
+        gloss.addColorStop(0.35, 'rgba(255,255,255,0.4)');
+        gloss.addColorStop(0.7, 'rgba(255,255,255,0.05)');
+        gloss.addColorStop(1, 'rgba(0,0,0,0.25)');
+        ctx.fillStyle = gloss;
+        ctx.fillRect(-halfW, -halfH, canW, canH);
+
+        ctx.restore();
+        ctx.shadowBlur = 0;
+
+        // Borde metálico superior e inferior de la lata
+        ctx.fillStyle = '#B0BEC5';
+        ctx.beginPath();
+        ctx.ellipse(0, -halfH + 1, halfW - 1, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#78909C';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = '#90A4AE';
+        ctx.beginPath();
+        ctx.ellipse(0, halfH - 1, halfW - 1, 3.5, 0, 0, Math.PI);
+        ctx.fill();
+
+        // Anilla superior de la lata
+        ctx.strokeStyle = '#546E7A';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(2, -halfH + 1, 4, 1.5, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Sol amarillo central y los 2 Toros Rojos enfrentados
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(0, 1, 7.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Toro Rojo Izquierdo y Derecho (silueta deportiva estilizada)
+        ctx.fillStyle = '#E10600';
+        // Toro Izq
+        ctx.beginPath();
+        ctx.moveTo(-11, 2);
+        ctx.lineTo(-4, -2);
+        ctx.lineTo(-1, 1);
+        ctx.lineTo(-6, 5);
+        ctx.closePath();
+        ctx.fill();
+        // Toro Der
+        ctx.beginPath();
+        ctx.moveTo(11, 2);
+        ctx.lineTo(4, -2);
+        ctx.lineTo(1, 1);
+        ctx.lineTo(6, 5);
+        ctx.closePath();
+        ctx.fill();
+
+        // Franja roja superior de texto "Red Bull"
+        ctx.fillStyle = '#E10600';
+        ctx.font = '900 6.5px "Exo 2", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('RED BULL', 0, -13);
+
         ctx.restore();
     }
 
@@ -952,13 +1035,14 @@ class LanesGame {
         );
     }
 
-    drawSpeedLines(ctx, w, h) {
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-        ctx.lineWidth = 2.5;
-        for (let i = 0; i < 14; i++) {
-            const x1 = Math.random() < 0.5 ? Math.random() * (w * 0.25) : w - Math.random() * (w * 0.25);
+    drawSpeedLines(ctx, w, h, isTurbo = false) {
+        ctx.strokeStyle = isTurbo ? 'rgba(0, 229, 255, 0.55)' : 'rgba(255, 255, 255, 0.25)';
+        ctx.lineWidth = isTurbo ? 3 : 1.8;
+        const count = isTurbo ? 18 : 6;
+        for (let i = 0; i < count; i++) {
+            const x1 = Math.random() < 0.5 ? Math.random() * (w * 0.22) : w - Math.random() * (w * 0.22);
             const y1 = Math.random() * h;
-            const len = 40 + Math.random() * 60;
+            const len = isTurbo ? (50 + Math.random() * 70) : (25 + Math.random() * 40);
             ctx.beginPath();
             ctx.moveTo(x1, y1);
             ctx.lineTo(x1 + (x1 < w / 2 ? -len * 0.3 : len * 0.3), y1 + len);
