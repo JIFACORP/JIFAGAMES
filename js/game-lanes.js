@@ -461,8 +461,13 @@ class LanesGame {
         this.speed += (this.targetSpeed - this.speed) * 0.1 * dtFactor;
 
         // A 245 km/h avanza 15 unidades por frame (900 u/s)
+        const prevPlayerZ = this.playerZ;
         const unitsMoved = (this.speed * 0.06122) * dtFactor;
         this.playerZ += unitsMoved;
+
+        const vm = this.getViewportMetrics(this.getW(), this.getH());
+        const prevCarZ = prevPlayerZ + vm.carZOffset;
+        const currCarZ = this.playerZ + vm.carZOffset;
 
         // Volante rápido y suave para velocidad de F1
         const steerSpeed = 0.042 * (this.turboTimer > 0 ? 1.15 : 1) * dtFactor;
@@ -479,10 +484,12 @@ class LanesGame {
             window.soundController.updateEngine(this.speed / 260, true);
         }
 
-        // 3. COLISIÓN EXACTA CON ITEMS (Solo cuando el auto realmente los toca visualmente)
+        // 3. COLISIÓN EXACTA EN PÍXELES VISUALES (idéntica en iPhone y MacBook)
+        const carHalfW = 42 * vm.carScale;
         this.items.forEach((item) => {
-            if (!item.hit && Math.abs(item.z - (this.playerZ + 55)) < 48) {
-                const hitThreshold = item.type === 'speed' ? 0.25 : 0.21;
+            if (!item.hit && item.z >= prevCarZ - 48 && item.z <= currCarZ + 48) {
+                const itemHalfW = (item.type === 'speed' ? 26 * 1.35 : 34 * 1.48) * vm.objScaleFactor * vm.scaleCar;
+                const hitThreshold = ((carHalfW + itemHalfW) / Math.max(40, vm.rwCar)) * (item.type === 'speed' ? 1.15 : 0.96);
                 if (Math.abs(item.x - this.playerX) < hitThreshold) {
                     item.hit = true;
                     if (item.type === 'speed') {
@@ -496,6 +503,9 @@ class LanesGame {
 
         // 4. ACTUALIZAR AUTOS RIVALES Y ADELANTAMIENTOS
         const weaveAmp = this.getCurrentTrack().weaveAmp || 0.004;
+        const rivalHalfW = 42 * 0.92 * vm.objScaleFactor * vm.scaleCar;
+        const rivalHitThreshold = (carHalfW + rivalHalfW) / Math.max(40, vm.rwCar);
+
         this.rivals.forEach((rival) => {
             rival.z += rival.speedUnits * dtFactor;
 
@@ -505,10 +515,10 @@ class LanesGame {
 
             if (rival.wobble > 0) rival.wobble -= dtFactor;
 
-            // Comprobar adelantamiento
-            if (!rival.overtaken && this.playerZ >= rival.z) {
+            // Comprobar adelantamiento al pasar la nariz del jugador
+            if (!rival.overtaken && currCarZ >= rival.z) {
                 rival.overtaken = true;
-                this.playerRank = Math.max(1, this.playerRank - 1);
+                this.playerRank = Math.max(1, 1 + this.rivals.filter((r) => r.z > currCarZ).length);
 
                 if (window.soundController) {
                     window.soundController.playTurbo();
@@ -534,8 +544,8 @@ class LanesGame {
                 }
             }
 
-            // Choque amistoso fluido (sin saltos ni tirones)
-            if (Math.abs(rival.z - this.playerZ) < 130 && Math.abs(rival.x - this.playerX) < 0.30) {
+            // Choque amistoso fluido sincronizado con el tamaño visual en pantalla
+            if (Math.abs(rival.z - currCarZ) < 110 && Math.abs(rival.x - this.playerX) < rivalHitThreshold) {
                 if (rival.wobble <= 0) {
                     rival.wobble = 24;
                     if (window.soundController) window.soundController.playJump();
@@ -547,7 +557,7 @@ class LanesGame {
         });
 
         // Actualizar posición real en tiempo real (coincide siempre con el mapa del circuito)
-        this.playerRank = 1 + this.rivals.filter((r) => r.z > this.playerZ).length;
+        this.playerRank = 1 + this.rivals.filter((r) => r.z > currCarZ).length;
 
         // 4.5 PROGRESO DE VUELTAS (3 Vueltas)
         const newLap = Math.min(this.totalLaps, Math.floor(this.playerZ / this.lapLength) + 1);
@@ -601,6 +611,38 @@ class LanesGame {
         }
     }
 
+    // Métricas unificadas de pantalla para que el tamaño visual y el hitbox coincidan en iPhone y Desktop
+    getViewportMetrics(w, h) {
+        const safeW = w || 800;
+        const safeH = h || 600;
+        const isMobile = safeW < 640;
+        const horizonY = safeH * 0.40;
+        const roadH = Math.max(100, safeH - horizonY);
+        const widthFactor = safeW < 600 ? (safeW * 0.78) / 1000.0 : Math.min(safeW, 950) / 1000.0;
+        const carY = safeH < 480 ? safeH - 82 : (isMobile ? safeH - 125 : safeH - 105);
+        const carScale = isMobile ? Math.max(0.58, Math.min(0.84, (safeW * 0.78) / 480)) : 1.05;
+        const objScaleFactor = Math.max(0.54, Math.min(1.0, widthFactor / 0.95));
+
+        const dzCar = (255.0 * roadH) / Math.max(40, carY - horizonY);
+        const carZOffset = dzCar - 280.0;
+        const scaleCar = 300.0 / dzCar;
+        const rwCar = this.worldHalfW * scaleCar * widthFactor;
+
+        return {
+            isMobile,
+            horizonY,
+            roadH,
+            widthFactor,
+            carY,
+            carScale,
+            objScaleFactor,
+            dzCar,
+            carZOffset,
+            scaleCar,
+            rwCar
+        };
+    }
+
     // PROYECCIÓN 3D SEGURA Y CALIBRADA (Adaptada a Desktop y iPhone Portrait)
     project(worldX, worldY, worldZ, cameraX, cameraY, cameraZ, horizonY, w, h) {
         const dz = worldZ - cameraZ;
@@ -609,7 +651,7 @@ class LanesGame {
         const scale = 300.0 / dz;
         const roadH = h - horizonY;
         // Pista ancha y proporcional tanto en iPhone como en Desktop
-        const widthFactor = w < 600 ? (w * 0.65) / 1000.0 : Math.min(w, 950) / 1000.0;
+        const widthFactor = w < 600 ? (w * 0.78) / 1000.0 : Math.min(w, 950) / 1000.0;
 
         const screenY = horizonY + (cameraY - worldY) * scale * (roadH / 1000.0);
         const screenX = (w / 2) + (worldX - cameraX) * scale * widthFactor;
@@ -746,6 +788,7 @@ class LanesGame {
         // 4. DIBUJAR OBJETOS INTERPOLADOS CON FLUIDEZ 60/120 FPS (De atrás hacia adelante)
         const lerp = (a, b, t) => a + (b - a) * t;
         const behindRivals = [];
+        const vm = this.getViewportMetrics(w, h);
 
         for (let i = projectedSegments.length - 2; i >= 0; i--) {
             const s1 = projectedSegments[i];
@@ -774,29 +817,30 @@ class LanesGame {
                 }
             });
 
-            // Items en pista (Aceite / Flechas Turbo)
+            // Items en pista (Latas Red Bull / Vallas New Jersey) escalados proporcionalmente al ancho de pista
             this.items.forEach((item) => {
                 if (!item.hit && item.z >= segMinZ && item.z < segMaxZ) {
                     const p = interpAtZ(item.z);
                     if (p.y <= maxClipY + 20 && p.y >= horizonY) {
                         const ix = p.x + item.x * p.rw;
+                        const itemScale = p.scale * vm.objScaleFactor;
                         if (item.type === 'speed') {
-                            this.drawSpeedPad3D(ctx, ix, p.y, p.scale);
+                            this.drawSpeedPad3D(ctx, ix, p.y, itemScale);
                         } else {
-                            this.drawOilPuddle3D(ctx, ix, p.y, p.scale);
+                            this.drawOilPuddle3D(ctx, ix, p.y, itemScale);
                         }
                     }
                 }
             });
 
             // Autos Rivales de F1 (Interpolados cuadro a cuadro)
-            const playerCarY = w < 640 ? h - 135 : h - 105;
+            const playerCarY = vm.carY;
             this.rivals.forEach((rival) => {
                 if (rival.z >= segMinZ && rival.z < segMaxZ) {
                     const p = interpAtZ(rival.z);
                     const rx = p.x + rival.x * p.rw;
                     const ry = p.y;
-                    const carScale = p.scale * 0.92;
+                    const carScale = p.scale * 0.92 * vm.objScaleFactor;
                     const tilt = rival.wobble > 0 ? Math.sin(rival.wobble * 0.45) * 0.35 : 0;
 
                     if (ry >= playerCarY) {
@@ -1240,16 +1284,18 @@ class LanesGame {
     }
 
     drawPlayerF1Car(ctx, w, h, horizonY) {
+        const vm = this.getViewportMetrics(w, h);
         const cameraZ = this.playerZ - 280;
+        const playerCarZ = this.playerZ + vm.carZOffset;
         const cameraY = this.cameraY + this.getRoadHill(this.playerZ);
         const camOffsetX = this.playerX * this.worldHalfW * 0.65;
         const playerWorldX = this.playerX * this.worldHalfW;
 
-        const proj = this.project(playerWorldX, this.getRoadHill(this.playerZ), this.playerZ, camOffsetX, cameraY, cameraZ, horizonY, w, h);
+        // Proyectar exactamente en la profundidad visual playerCarZ (evita desfase lateral en bordes de iPhone)
+        const proj = this.project(playerWorldX, this.getRoadHill(this.playerZ), playerCarZ, camOffsetX, cameraY, cameraZ, horizonY, w, h);
         const carX = proj ? proj.x : w / 2;
-        const isMobile = w < 640;
-        const carY = isMobile ? h - 135 : h - 105;
-        const carScale = isMobile ? Math.max(0.72, Math.min(0.88, w / 480)) : 1.05;
+        const carY = vm.carY;
+        const carScale = vm.carScale;
 
         const hasTurbo = this.turboTimer > 0;
         const isSkidding = this.skidTimer > 0;
