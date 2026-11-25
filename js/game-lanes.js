@@ -253,14 +253,14 @@ class LanesGame {
     }
 
     triggerOilSkid() {
-        this.skidTimer = 45; // ~0.75 segundos de frenada
+        this.skidTimer = 42; // ~0.7 segundos de frenada al chocar la valla
         this.turboTimer = 0;
         if (window.soundController) {
-            window.soundController.playSkid();
+            window.soundController.playOops();
         }
         this.overtakePopups.push({
-            text: '⚠️ ¡ACEITE! ⚠️',
-            color: '#FF9500',
+            text: '🚧 ¡VALLA! 🚧',
+            color: '#FF6D00',
             y: this.getH() * 0.45,
             life: 40
         });
@@ -328,10 +328,11 @@ class LanesGame {
             window.soundController.updateEngine(this.speed / 260, true);
         }
 
-        // 3. COLISIÓN CON ITEMS (Lata Red Bull y Aceite)
+        // 3. COLISIÓN EXACTA CON ITEMS (Solo cuando el auto realmente los toca visualmente)
         this.items.forEach((item) => {
-            if (!item.hit && Math.abs(item.z - this.playerZ) < 150) {
-                if (Math.abs(item.x - this.playerX) < 0.36) {
+            if (!item.hit && Math.abs(item.z - (this.playerZ + 55)) < 48) {
+                const hitThreshold = item.type === 'speed' ? 0.25 : 0.19;
+                if (Math.abs(item.x - this.playerX) < hitThreshold) {
                     item.hit = true;
                     if (item.type === 'speed') {
                         this.triggerSpeedBoost();
@@ -878,54 +879,80 @@ class LanesGame {
         ctx.restore();
     }
 
-    // CHARCO DE ACEITE DE ALTO CONTRASTE (Bien visible sobre el asfalto)
+    // VALLA DE SEGURIDAD VIAL NARANJA (Estilo New Jersey con flechas reflectantes)
     drawOilPuddle3D(ctx, x, y, scale) {
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(scale * 1.65, scale * 0.72);
+        const s = scale * 1.15;
+        ctx.scale(s, s);
 
-        // Halo exterior brillante ámbar/tornasol para destacar en el asfalto oscuro
-        ctx.fillStyle = 'rgba(255, 160, 0, 0.45)';
+        // Sombra en el asfalto
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
         ctx.beginPath();
-        ctx.ellipse(0, 0, 44, 24, 0, 0, Math.PI * 2);
+        ctx.ellipse(3, 3, 42, 9, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Cuerpo principal del charco (Negro brillante profundo)
-        ctx.fillStyle = '#09050D';
+        // Dos orejas / pestañas superiores de encastre (como en la foto)
+        ctx.fillStyle = '#E64A00';
         ctx.beginPath();
-        ctx.ellipse(0, 0, 39, 20, 0.1, 0, Math.PI * 2);
+        ctx.moveTo(-29, -40); ctx.lineTo(-27, -50); ctx.lineTo(-17, -50); ctx.lineTo(-13, -40);
+        ctx.closePath();
         ctx.fill();
 
-        // Gotas salpicadas a los lados
         ctx.beginPath();
-        ctx.arc(-32, 8, 7, 0, Math.PI * 2);
-        ctx.arc(34, -6, 8, 0, Math.PI * 2);
-        ctx.arc(20, 14, 5, 0, Math.PI * 2);
+        ctx.moveTo(13, -40); ctx.lineTo(17, -50); ctx.lineTo(27, -50); ctx.lineTo(29, -40);
+        ctx.closePath();
         ctx.fill();
 
-        // Borde iridiscente tornasol (Morado + Turquesa + Dorado)
-        ctx.strokeStyle = '#E040FB';
-        ctx.lineWidth = 3.5;
+        // Lateral 3D derecho para dar volumen
+        ctx.fillStyle = '#CC4400';
         ctx.beginPath();
-        ctx.ellipse(0, 0, 34, 16, 0.1, 0.2, Math.PI * 1.1);
+        ctx.moveTo(30, -40);
+        ctx.lineTo(36, -37);
+        ctx.lineTo(42, -2);
+        ctx.lineTo(36, 2);
+        ctx.closePath();
+        ctx.fill();
+
+        // Cuerpo principal trapezoidal de la valla naranja
+        const bodyGrad = ctx.createLinearGradient(-34, -40, 34, 0);
+        bodyGrad.addColorStop(0, '#FF6D1A');
+        bodyGrad.addColorStop(0.5, '#FF5500');
+        bodyGrad.addColorStop(1, '#E64A00');
+
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        ctx.moveTo(-30, -40);
+        ctx.lineTo(30, -40);
+        ctx.lineTo(36, 0);
+        // Patitas inferiores con huecos
+        ctx.lineTo(20, 0); ctx.lineTo(18, -5); ctx.lineTo(6, -5); ctx.lineTo(4, 0);
+        ctx.lineTo(-4, 0); ctx.lineTo(-6, -5); ctx.lineTo(-18, -5); ctx.lineTo(-20, 0);
+        ctx.lineTo(-36, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = '#B23800';
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        ctx.strokeStyle = '#00E5FF';
-        ctx.lineWidth = 3;
+        // Franja reflectante blanca horizontal superior
+        ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
-        ctx.ellipse(0, 0, 30, 13, 0.1, Math.PI * 1.15, Math.PI * 1.9);
-        ctx.stroke();
-
-        // Reflejos blancos brillantes de líquido húmedo
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-        ctx.beginPath();
-        ctx.ellipse(-12, -6, 10, 3.5, -0.25, 0, Math.PI * 2);
+        ctx.roundRect(-27, -35, 54, 4.5, 1.5);
         ctx.fill();
 
-        ctx.fillStyle = 'rgba(255, 215, 0, 0.8)';
-        ctx.beginPath();
-        ctx.ellipse(12, 4, 7, 2.5, 0.2, 0, Math.PI * 2);
-        ctx.fill();
+        // Dos flechas reflectantes blancas (>>) en el frente de la valla
+        ctx.fillStyle = '#FFFFFF';
+        [-12, 8].forEach((cx) => {
+            ctx.beginPath();
+            ctx.moveTo(cx - 8, -26);
+            ctx.lineTo(cx + 6, -15);
+            ctx.lineTo(cx - 8, -5);
+            ctx.lineTo(cx - 1, -15);
+            ctx.closePath();
+            ctx.fill();
+        });
 
         ctx.restore();
     }
