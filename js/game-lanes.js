@@ -16,9 +16,10 @@ class LanesGame {
                 skyBottom: "#FFE082",
                 mountainColor: "#8D4925",
                 mountainPeak: "#D7814A",
-                groundColor: "#E2903B",
+                groundColor1: "#E2903B",
+                groundColor2: "#D8822B",
                 asphaltColor1: "#2B2622",
-                asphaltColor2: "#352E29",
+                asphaltColor2: "#36302B",
                 kerbColor1: "#D50000",
                 kerbColor2: "#FFFFFF",
                 decorations: ['cactus', 'flamingo', 'llama']
@@ -31,9 +32,10 @@ class LanesGame {
                 skyBottom: "#90CAF9",
                 mountainColor: "#37474F",
                 mountainPeak: "#FFFFFF",
-                groundColor: "#DCE7EF",
+                groundColor1: "#DCE7EF",
+                groundColor2: "#C7D8E6",
                 asphaltColor1: "#262C33",
-                asphaltColor2: "#303740",
+                asphaltColor2: "#323A44",
                 kerbColor1: "#FFD600",
                 kerbColor2: "#1A1A1A",
                 decorations: ['snowtree', 'condor', 'mountainrock']
@@ -46,9 +48,10 @@ class LanesGame {
                 skyBottom: "#80DEEA",
                 mountainColor: "#1B5E20",
                 mountainPeak: "#E0F2F1",
-                groundColor: "#388E3C",
+                groundColor1: "#388E3C",
+                groundColor2: "#2E7D32",
                 asphaltColor1: "#1E2620",
-                asphaltColor2: "#273129",
+                asphaltColor2: "#29332B",
                 kerbColor1: "#D50000",
                 kerbColor2: "#FFFFFF",
                 decorations: ['araucaria', 'lake', 'pudu']
@@ -61,9 +64,10 @@ class LanesGame {
                 skyBottom: "#81D4FA",
                 mountainColor: "#263238",
                 mountainPeak: "#B3E5FC",
-                groundColor: "#CFD8DC",
+                groundColor1: "#CFD8DC",
+                groundColor2: "#B0BEC5",
                 asphaltColor1: "#1A222C",
-                asphaltColor2: "#222D3A",
+                asphaltColor2: "#242F3D",
                 kerbColor1: "#00E5FF",
                 kerbColor2: "#FFFFFF",
                 decorations: ['iceberg', 'penguin', 'torrespaine']
@@ -72,12 +76,11 @@ class LanesGame {
 
         this.currentTrackIndex = 0;
 
-        // Configuración de la pista 3D
-        this.trackLength = 3600; // Distancia de carrera (metros)
-        this.segmentLength = 100; // Cada segmento
-        this.roadWidth = 1400; // Ancho del camino en 3D
-        this.cameraHeight = 700; // Altura de cámara
-        this.cameraDepth = 0.82; // Profundidad de campo
+        // Configuración del mundo 3D
+        this.trackLength = 36000;   // ~60 segundos a 600 unidades/segundo (10 u/frame)
+        this.segmentLength = 100;   // 360 segmentos
+        this.worldHalfW = 460;      // Mitad del ancho de la carretera en el mundo
+        this.cameraY = 850;         // Altura de cámara sobre el asfalto
 
         this.initRoad();
     }
@@ -89,26 +92,26 @@ class LanesGame {
     initRoad() {
         const track = this.getCurrentTrack();
 
-        this.playerX = 0;       // Posición horizontal (-1 = izquierda, 0 = centro, 1 = derecha)
+        this.playerX = 0;       // -1 (izquierda) a +1 (derecha)
         this.playerZ = 0;       // Distancia recorrida
-        this.speed = 0;         // Velocidad actual
-        this.targetSpeed = 160; // Velocidad de crucero (~160 km/h)
-        this.turboTimer = 0;    // Impulso de turbo (flechas)
-        this.skidTimer = 0;     // Derrape en aceite
-        this.steerInput = 0;    // -1 = izquierda, 1 = derecha
-        this.tilt = 0;          // Inclinación visual del auto
+        this.speed = 0;         // Velocidad visual en km/h (0 - 230)
+        this.targetSpeed = 160; // Crucero: 160 km/h (= 10 u/frame)
+        this.turboTimer = 0;
+        this.skidTimer = 0;
+        this.steerInput = 0;
+        this.tilt = 0;
 
-        this.playerRank = 6;    // Comienza en 6º lugar
+        this.playerRank = 6;    // Empieza en 6º lugar
         this.won = false;
-        this.startCountdown = 120; // 2 segundos de semáforo de largada (🔴🔴🔴 -> 🟢🟢🟢)
+        this.startCountdown = 110; // ~1.8 segundos de semáforo de largada
 
         this.particles = [];
         this.confetti = [];
-        this.overtakePopups = []; // Mensajes de adelantamiento
+        this.overtakePopups = [];
 
-        // CREAR LOS 5 AUTOS RIVALES A DISTANCIAS ALCANZABLES (100% GANABLE)
-        // La velocidad del jugador es ~160 km/h, rivales van a ~115-130 km/h
-        // Cada ~10-12 segundos el niño adelanta a un rival
+        // 5 AUTOS RIVALES CALIBRADOS PARA SER 100% ALCANZABLES EN 1 MINUTO
+        // A velocidad de jugador = 10 u/frame (600 u/seg):
+        // Cada rival va entre 7.1 y 8.2 u/frame, por lo que los alcanzas cada ~10-12 segundos
         this.rivals = [
             {
                 id: 5,
@@ -116,9 +119,9 @@ class LanesGame {
                 color: '#006F62',
                 number: 14,
                 rider: 'leon',
-                z: 450,       // Se alcanza hacia los 8-10 segundos
-                x: -0.5,
-                speed: 110,
+                z: 1700,      // Alcanzado aprox. a los 10s
+                x: -0.45,
+                speedUnits: 7.1, // 426 u/s
                 overtaken: false,
                 wobble: 0
             },
@@ -128,9 +131,9 @@ class LanesGame {
                 color: '#FF8000',
                 number: 4,
                 rider: 'conejo',
-                z: 1100,      // Se alcanza hacia los 20-22 segundos
-                x: 0.5,
-                speed: 118,
+                z: 3300,      // Alcanzado aprox. a los 22s
+                x: 0.45,
+                speedUnits: 7.5, // 450 u/s
                 overtaken: false,
                 wobble: 0
             },
@@ -140,9 +143,9 @@ class LanesGame {
                 color: '#00D2BE',
                 number: 44,
                 rider: 'zorro',
-                z: 1800,      // Se alcanza hacia los 32-35 segundos -> ¡PODIO 🥉!
-                x: -0.4,
-                speed: 122,
+                z: 4700,      // Alcanzado aprox. a los 35s -> ¡PODIO 3º!
+                x: -0.35,
+                speedUnits: 7.75, // 465 u/s
                 overtaken: false,
                 wobble: 0
             },
@@ -152,9 +155,9 @@ class LanesGame {
                 color: '#0600EF',
                 number: 33,
                 rider: 'tigre',
-                z: 2500,      // Se alcanza hacia los 44-46 segundos -> ¡PODIO 🥈!
-                x: 0.4,
-                speed: 126,
+                z: 5650,      // Alcanzado aprox. a los 47s -> ¡PODIO 2º!
+                x: 0.35,
+                speedUnits: 8.0, // 480 u/s
                 overtaken: false,
                 wobble: 0
             },
@@ -164,18 +167,18 @@ class LanesGame {
                 color: '#FF1801',
                 number: 16,
                 rider: 'leon',
-                z: 3100,      // Se alcanza hacia los 54-56 segundos -> ¡1º LUGAR 🏆!
-                x: -0.2,
-                speed: 128,
+                z: 5900,      // Alcanzado aprox. a los 55s -> ¡1º LUGAR 🏆!
+                x: 0.0,
+                speedUnits: 8.25, // 495 u/s
                 overtaken: false,
                 wobble: 0
             }
         ];
 
-        // CREAR ITEMS EN PISTA (Flechas de Velocidad y Charcos de Aceite)
+        // EXACTAMENTE 2 ITEMS EN PISTA: 'speed' (Flechas Turbo) y 'oil' (Charco de Aceite)
         this.items = [];
-        for (let z = 300; z < this.trackLength - 200; z += 180) {
-            const laneX = (Math.random() - 0.5) * 1.3;
+        for (let z = 1200; z < this.trackLength - 1500; z += 1400) {
+            const laneX = (Math.random() - 0.5) * 1.2;
             const type = Math.random() < 0.55 ? 'speed' : 'oil';
             this.items.push({
                 z: z,
@@ -185,41 +188,35 @@ class LanesGame {
             });
         }
 
-        // DECORACIONES DE PAISAJE A LOS COSTADOS
+        // DECORACIONES DE PAISAJE CHILENO A LOS COSTADOS DEL CAMINO
         this.props = [];
         const decTypes = track.decorations;
-        for (let z = 100; z < this.trackLength + 400; z += 120) {
-            // Lado izquierdo
+        for (let z = 400; z < this.trackLength + 3000; z += 650) {
             this.props.push({
                 z: z,
-                x: -1.5 - Math.random() * 0.8,
-                type: decTypes[Math.floor(Math.random() * decTypes.length)],
-                scale: 1
+                x: -1.45 - Math.random() * 0.6,
+                type: decTypes[Math.floor(Math.random() * decTypes.length)]
             });
-            // Lado derecho
             this.props.push({
-                z: z + 60,
-                x: 1.5 + Math.random() * 0.8,
-                type: decTypes[Math.floor(Math.random() * decTypes.length)],
-                scale: 1
+                z: z + 325,
+                x: 1.45 + Math.random() * 0.6,
+                type: decTypes[Math.floor(Math.random() * decTypes.length)]
             });
         }
 
-        // Sonido de inicio
         if (window.soundController) {
             window.soundController.startEngine();
         }
     }
 
-    // Curva del camino según la distancia Z
-    getRoadCurve(z) {
-        // Suaves curvas temáticas de Fórmula 1
-        return Math.sin(z * 0.002) * 0.8 + Math.sin(z * 0.005) * 0.4;
+    // Curva del segmento (para acumulación estilo OutRun)
+    getSegmentCurve(segIndex) {
+        return Math.sin(segIndex * 0.065) * 6 + Math.cos(segIndex * 0.03) * 4;
     }
 
-    // Elevación / colinas suaves del camino
+    // Elevación del segmento (colinas suaves)
     getRoadHill(z) {
-        return Math.sin(z * 0.0018) * 120;
+        return Math.sin(z * 0.0008) * 180;
     }
 
     moveLeft() {
@@ -235,12 +232,11 @@ class LanesGame {
     }
 
     triggerSpeedBoost() {
-        this.turboTimer = 65; // ~1.3 segundos de super velocidad
+        this.turboTimer = 60; // ~1 segundo de turbo intenso
         this.skidTimer = 0;
         if (window.soundController) {
             window.soundController.playTurbo();
         }
-        // Popup visual
         this.overtakePopups.push({
             text: '⚡ ¡TURBO! ⚡',
             color: '#00E5FF',
@@ -250,7 +246,7 @@ class LanesGame {
     }
 
     triggerOilSkid() {
-        this.skidTimer = 50; // ~1 segundo de frenada
+        this.skidTimer = 45; // ~0.75 segundos de frenada
         this.turboTimer = 0;
         if (window.soundController) {
             window.soundController.playSkid();
@@ -264,90 +260,92 @@ class LanesGame {
     }
 
     update(dt) {
-        // 1. SEMÁFORO DE LARGADA (3, 2, 1, ¡YA!)
+        const dtFactor = Math.min((dt || 1 / 60) * 60, 2.5);
+
+        // 1. SEMÁFORO DE LARGADA
         if (this.startCountdown > 0) {
-            this.startCountdown--;
-            if (this.startCountdown === 90 || this.startCountdown === 60 || this.startCountdown === 30) {
+            const prev = Math.ceil(this.startCountdown / 30);
+            this.startCountdown -= dtFactor;
+            const curr = Math.ceil(this.startCountdown / 30);
+
+            if (curr !== prev && curr > 0) {
                 if (window.soundController) window.soundController.playJump();
             }
-            if (this.startCountdown === 0) {
+            if (this.startCountdown <= 0) {
+                this.startCountdown = 0;
                 if (window.soundController) window.soundController.playTurbo();
             }
             return;
         }
 
         if (this.won) {
-            // Desacelerar tras la meta
-            this.speed *= 0.96;
-            this.playerZ += this.speed * 0.04;
-            // Actualizar confeti
+            this.speed *= Math.pow(0.95, dtFactor);
+            this.playerZ += (this.speed * 0.0625) * dtFactor;
             this.confetti.forEach((c) => {
-                c.y += c.vy;
-                c.x += c.vx;
-                c.rotation += 0.05;
+                c.y += c.vy * dtFactor;
+                c.x += c.vx * dtFactor;
+                c.rotation += 0.05 * dtFactor;
             });
             return;
         }
 
-        // 2. FÍSICA Y VELOCIDAD DEL JUGADOR
+        // 2. VELOCIDAD Y DIRECCIÓN DEL JUGADOR
         if (this.turboTimer > 0) {
-            this.turboTimer--;
-            this.targetSpeed = 230; // 230 km/h en Turbo
+            this.turboTimer -= dtFactor;
+            this.targetSpeed = 235;
         } else if (this.skidTimer > 0) {
-            this.skidTimer--;
-            this.targetSpeed = 95;  // 95 km/h en Aceite
+            this.skidTimer -= dtFactor;
+            this.targetSpeed = 95;
         } else {
-            this.targetSpeed = 160; // 160 km/h de crucero
+            this.targetSpeed = 160;
         }
 
-        // Aceleración suave
-        this.speed += (this.targetSpeed - this.speed) * 0.1;
-        const speedRatio = this.speed / 160;
+        this.speed += (this.targetSpeed - this.speed) * 0.1 * dtFactor;
 
-        // Avanzar en la pista
-        this.playerZ += this.speed * 0.07;
+        // A 160 km/h avanza exactamente 10 unidades por frame (600 u/s)
+        const unitsMoved = (this.speed * 0.0625) * dtFactor;
+        this.playerZ += unitsMoved;
 
-        // Dirección / Volante
-        const steerSpeed = 0.038 * (this.turboTimer > 0 ? 1.15 : 1);
+        // Volante suave
+        const steerSpeed = 0.038 * (this.turboTimer > 0 ? 1.15 : 1) * dtFactor;
         if (this.steerInput !== 0) {
             this.playerX += this.steerInput * steerSpeed;
-            this.tilt += (this.steerInput - this.tilt) * 0.25;
+            this.tilt += (this.steerInput - this.tilt) * 0.22 * dtFactor;
         } else {
-            this.tilt *= 0.8;
+            this.tilt *= Math.pow(0.82, dtFactor);
         }
 
-        // Límites laterales de la pista
-        this.playerX = Math.max(-0.95, Math.min(0.95, this.playerX));
+        this.playerX = Math.max(-0.92, Math.min(0.92, this.playerX));
 
-        // Actualizar sonido de motor
         if (window.soundController) {
             window.soundController.updateEngine(this.speed / 200, true);
         }
 
-        // 3. ACTUALIZAR ITEMS (Colisión con Turbo y Aceite)
+        // 3. COLISIÓN CON ITEMS (Flechas de Velocidad y Aceite)
         this.items.forEach((item) => {
-            if (!item.hit && Math.abs(item.z - this.playerZ) < 25) {
-                const distOnRoad = Math.abs(item.x - this.playerX);
-                if (distOnRoad < 0.38) {
+            if (!item.hit && Math.abs(item.z - this.playerZ) < 120) {
+                if (Math.abs(item.x - this.playerX) < 0.34) {
                     item.hit = true;
                     if (item.type === 'speed') {
                         this.triggerSpeedBoost();
-                    } else if (item.type === 'oil') {
+                    } else {
                         this.triggerOilSkid();
                     }
                 }
             }
         });
 
-        // 4. ACTUALIZAR AUTOS RIVALES Y ADELANTAMIENTOS (100% GANABLE)
+        // 4. ACTUALIZAR AUTOS RIVALES Y ADELANTAMIENTOS
         this.rivals.forEach((rival) => {
-            // Mover rival hacia adelante a su velocidad constante
-            rival.z += rival.speed * 0.055;
+            rival.z += rival.speedUnits * dtFactor;
 
-            // Suave cambio de carril de los rivales para no ser estáticos
-            rival.x += Math.sin(this.playerZ * 0.005 + rival.id) * 0.003;
+            // Movimiento lateral suave
+            rival.x += Math.sin(this.playerZ * 0.001 + rival.id * 2) * 0.004 * dtFactor;
+            rival.x = Math.max(-0.75, Math.min(0.75, rival.x));
 
-            // Adelantamiento
+            if (rival.wobble > 0) rival.wobble -= dtFactor;
+
+            // Comprobar adelantamiento
             if (!rival.overtaken && this.playerZ >= rival.z) {
                 rival.overtaken = true;
                 this.playerRank = Math.max(1, this.playerRank - 1);
@@ -356,41 +354,37 @@ class LanesGame {
                     window.soundController.playTurbo();
                 }
 
-                // Popup grande de adelantamiento
                 this.overtakePopups.push({
-                    text: `¡${this.playerRank}º LUGAR! 🏆`,
+                    text: this.playerRank === 1 ? '🏆 ¡1º LUGAR! ¡LÍDER! 🏆' : `¡${this.playerRank}º LUGAR!`,
                     color: this.playerRank === 1 ? '#FFD700' : '#00E5FF',
                     y: this.canvas.height * 0.35,
                     life: 60
                 });
 
-                // Chispas de adelantamiento
                 for (let p = 0; p < 18; p++) {
                     this.particles.push({
-                        x: (this.canvas.width / 2) + (Math.random() - 0.5) * 160,
+                        x: (this.canvas.width / 2) + (Math.random() - 0.5) * 180,
                         y: this.canvas.height * 0.65,
                         vx: (Math.random() - 0.5) * 8,
                         vy: (Math.random() - 0.5) * 8,
-                        size: 6 + Math.random() * 4,
+                        size: 5 + Math.random() * 5,
                         color: ['#FFD700', '#00E5FF', '#FF3B30', '#FFFFFF'][Math.floor(Math.random() * 4)],
                         life: 25
                     });
                 }
             }
 
-            // Choque amistoso si estás muy cerca del rival
-            if (Math.abs(rival.z - this.playerZ) < 35 && Math.abs(rival.x - this.playerX) < 0.32) {
-                // Rebotar suavemente a los costados
+            // Choque amistoso tipo autito chocador
+            if (Math.abs(rival.z - this.playerZ) < 160 && Math.abs(rival.x - this.playerX) < 0.32) {
+                rival.wobble = 15;
                 if (this.playerX < rival.x) {
-                    rival.x = Math.min(0.9, rival.x + 0.15);
-                    this.playerX = Math.max(-0.9, this.playerX - 0.1);
+                    rival.x = Math.min(0.85, rival.x + 0.14);
+                    this.playerX = Math.max(-0.88, this.playerX - 0.08);
                 } else {
-                    rival.x = Math.max(-0.9, rival.x - 0.15);
-                    this.playerX = Math.min(0.9, this.playerX + 0.1);
+                    rival.x = Math.max(-0.85, rival.x - 0.14);
+                    this.playerX = Math.min(0.88, this.playerX + 0.08);
                 }
-                if (window.soundController) {
-                    window.soundController.playJump();
-                }
+                if (window.soundController) window.soundController.playJump();
             }
         });
 
@@ -400,8 +394,6 @@ class LanesGame {
             if (window.soundController) {
                 window.soundController.playWin();
             }
-
-            // Lluvia de confeti chileno y dorado
             for (let i = 0; i < 90; i++) {
                 this.confetti.push({
                     x: (this.canvas.width * 0.1) + Math.random() * (this.canvas.width * 0.8),
@@ -415,55 +407,222 @@ class LanesGame {
             }
         }
 
-        // Actualizar partículas
+        // Partículas y popups
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.life--;
+            p.x += p.vx * dtFactor;
+            p.y += p.vy * dtFactor;
+            p.life -= dtFactor;
             if (p.life <= 0) this.particles.splice(i, 1);
         }
 
-        // Actualizar popups
         for (let i = this.overtakePopups.length - 1; i >= 0; i--) {
             const pop = this.overtakePopups[i];
-            pop.y -= 0.6;
-            pop.life--;
+            pop.y -= 0.7 * dtFactor;
+            pop.life -= dtFactor;
             if (pop.life <= 0) this.overtakePopups.splice(i, 1);
         }
+    }
+
+    // PROYECCIÓN 3D SEGURA Y CALIBRADA
+    project(worldX, worldY, worldZ, cameraX, cameraY, cameraZ, horizonY, w, h) {
+        const dz = worldZ - cameraZ;
+        if (dz <= 40) return null;
+
+        const scale = 300.0 / dz;
+        const roadH = h - horizonY;
+        const widthFactor = Math.min(w, 850) / 1000.0;
+
+        const screenY = horizonY + (cameraY - worldY) * scale * (roadH / 1000.0);
+        const screenX = (w / 2) + (worldX - cameraX) * scale * widthFactor;
+        const halfRoadW = this.worldHalfW * scale * widthFactor;
+
+        return { x: screenX, y: screenY, rw: halfRoadW, scale: scale, widthFactor: widthFactor };
     }
 
     draw() {
         const ctx = this.ctx;
         const w = this.canvas.width;
         const h = this.canvas.height;
-        const track = this.getCurrentTrack();
+        if (!w || !h) return;
 
+        const track = this.getCurrentTrack();
         ctx.clearRect(0, 0, w, h);
 
-        const horizonY = h * 0.42; // Altura del horizonte
+        const horizonY = h * 0.40; // Horizonte en el 40% superior
 
-        // 1. CIELO Y PAISAJE CHILENO AL HORIZONTE
+        // 1. CIELO Y CORDILLERA CHILENA DE FONDO
         this.drawSkyAndMountains(ctx, w, h, horizonY, track);
 
-        // 2. MOTOR DE CARRETERA PSEUDO-3D
-        this.draw3DRoad(ctx, w, h, horizonY, track);
+        // Suelo base bajo el horizonte
+        ctx.fillStyle = track.groundColor1;
+        ctx.fillRect(0, horizonY, w, h - horizonY);
 
-        // 3. DIBUJAR ITEMS Y ELEMENTOS DE LA PISTA EN 3D
-        this.draw3DItems(ctx, w, h, horizonY);
+        // 2. CALCULAR SEGMENTOS DE CARRETERA 3D (De adelante hacia el horizonte)
+        const cameraZ = this.playerZ - 280;
+        const cameraY = this.cameraY + this.getRoadHill(this.playerZ);
+        const camOffsetX = this.playerX * this.worldHalfW * 0.65;
 
-        // 4. DIBUJAR AUTOS RIVALES EN 3D PERSPECTIVA
-        this.draw3DRivals(ctx, w, h, horizonY);
+        const drawDistance = 60;
+        const baseSeg = Math.floor(cameraZ / this.segmentLength);
 
-        // 5. DIBUJAR AUTO DE F1 DEL JUGADOR (EN PRIMER PLANO)
-        this.drawPlayerF1Car(ctx, w, h);
+        const projectedSegments = [];
+        let curveX = 0;
+        let dx = 0;
+        let maxY = h;
 
-        // 6. LÍNEAS DE VELOCIDAD DINÁMICAS (SPEED LINES)
+        for (let n = 1; n <= drawDistance; n++) {
+            const segIndex = baseSeg + n;
+            const segZ = segIndex * this.segmentLength;
+            const segY = this.getRoadHill(segZ);
+
+            // Solo acumular curvatura por delante del jugador para mantener el auto alineado con la pista
+            if (segZ > this.playerZ) {
+                dx += this.getSegmentCurve(segIndex) * 0.15;
+                curveX += dx;
+            }
+
+            const proj = this.project(curveX, segY, segZ, camOffsetX, cameraY, cameraZ, horizonY, w, h);
+            if (!proj) continue;
+
+            const isAlt = (segIndex % 2) === 0;
+            const clipY = maxY;
+            const visible = proj.y < maxY;
+            if (visible) {
+                maxY = Math.max(horizonY, proj.y);
+            }
+
+            projectedSegments.push({
+                n: n,
+                segIndex: segIndex,
+                segZ: segZ,
+                curveX: curveX,
+                proj: proj,
+                isAlt: isAlt,
+                clipY: clipY,
+                visible: visible
+            });
+        }
+
+        // 3. DIBUJAR CARRETERA DE ATRÁS HACIA ADELANTE (Con recorte en el horizonte)
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, horizonY, w, h - horizonY);
+        ctx.clip();
+
+        for (let i = projectedSegments.length - 1; i >= 1; i--) {
+            const s1 = projectedSegments[i - 1]; // Más cercano al jugador (abajo)
+            const s2 = projectedSegments[i];     // Más lejano (arriba)
+
+            if (!s2.visible && !s1.visible) continue;
+            if (s2.proj.y >= s1.proj.y) continue;
+
+            const p1 = s1.proj;
+            const p2 = s2.proj;
+
+            // Franja alternada de pasto/arena en el paisaje
+            ctx.fillStyle = s1.isAlt ? track.groundColor1 : track.groundColor2;
+            ctx.fillRect(0, p2.y, w, p1.y - p2.y + 1);
+
+            // Pianos / Kerbs F1 a ambos lados
+            const kerbW1 = p1.rw * 0.14;
+            const kerbW2 = p2.rw * 0.14;
+            ctx.fillStyle = s1.isAlt ? track.kerbColor1 : track.kerbColor2;
+
+            // Kerb izquierdo
+            this.drawTrapezoid(ctx, p1.x - p1.rw - kerbW1, p1.y, p1.x - p1.rw, p1.y, p2.x - p2.rw - kerbW2, p2.y, p2.x - p2.rw, p2.y);
+            // Kerb derecho
+            this.drawTrapezoid(ctx, p1.x + p1.rw, p1.y, p1.x + p1.rw + kerbW1, p1.y, p2.x + p2.rw, p2.y, p2.x + p2.rw + kerbW2, p2.y);
+
+            // Asfalto de la pista
+            ctx.fillStyle = s1.isAlt ? track.asphaltColor1 : track.asphaltColor2;
+            this.drawTrapezoid(ctx, p1.x - p1.rw, p1.y, p1.x + p1.rw, p1.y, p2.x - p2.rw, p2.y, p2.x + p2.rw, p2.y);
+
+            // Líneas blancas de los 3 carriles
+            if (s1.isAlt) {
+                ctx.fillStyle = '#FFFFFF';
+                const lw1 = p1.rw * 0.03;
+                const lw2 = p2.rw * 0.03;
+                [-0.33, 0.33].forEach(lanePos => {
+                    const lx1 = p1.x + p1.rw * lanePos;
+                    const lx2 = p2.x + p2.rw * lanePos;
+                    this.drawTrapezoid(ctx, lx1 - lw1, p1.y, lx1 + lw1, p1.y, lx2 - lw2, p2.y, lx2 + lw2, p2.y);
+                });
+            }
+
+            // Línea de Meta Cuadriculada en 3D
+            if (s1.segZ <= this.trackLength && s2.segZ >= this.trackLength) {
+                this.drawCheckeredFinish3D(ctx, p1.x, p1.y, p1.rw, p2.x, p2.y, p2.rw);
+            }
+        }
+        ctx.restore();
+
+        // 4. DIBUJAR OBJETOS EN EL SEGMENTO CORRESPONDIENTE (De atrás hacia adelante para oclusión perfecta)
+        // Mapear items, props y rivales dentro de los segmentos visibles
+        for (let i = projectedSegments.length - 1; i >= 0; i--) {
+            const seg = projectedSegments[i];
+            const segMinZ = seg.segZ;
+            const segMaxZ = seg.segZ + this.segmentLength;
+
+            // Paisaje chileno a los lados
+            this.props.forEach((prop) => {
+                if (prop.z >= segMinZ && prop.z < segMaxZ) {
+                    const px = seg.proj.x + prop.x * seg.proj.rw;
+                    const py = seg.proj.y;
+                    if (py <= seg.clipY && py >= horizonY) {
+                        this.drawChileanProp(ctx, px, py, prop.type, seg.proj.scale);
+                    }
+                }
+            });
+
+            // Items en pista (Aceite / Flechas Turbo)
+            this.items.forEach((item) => {
+                if (!item.hit && item.z >= segMinZ && item.z < segMaxZ) {
+                    const ix = seg.proj.x + item.x * seg.proj.rw;
+                    const iy = seg.proj.y;
+                    if (iy <= seg.clipY && iy >= horizonY) {
+                        if (item.type === 'speed') {
+                            this.drawSpeedPad3D(ctx, ix, iy, seg.proj.scale);
+                        } else {
+                            this.drawOilPuddle3D(ctx, ix, iy, seg.proj.scale);
+                        }
+                    }
+                }
+            });
+
+            // Autos Rivales de F1
+            this.rivals.forEach((rival) => {
+                if (rival.z >= segMinZ && rival.z < segMaxZ) {
+                    const rx = seg.proj.x + rival.x * seg.proj.rw;
+                    const ry = seg.proj.y;
+                    if (ry <= seg.clipY && ry >= horizonY) {
+                        const carScale = seg.proj.scale * 1.15;
+                        drawF1CarRearView(
+                            ctx,
+                            rx,
+                            ry - 12 * carScale,
+                            carScale,
+                            rival.color,
+                            rival.number,
+                            rival.rider,
+                            rival.wobble * 0.1,
+                            false,
+                            false
+                        );
+                    }
+                }
+            });
+        }
+
+        // 5. AUTO DE F1 DEL JUGADOR EN PRIMER PLANO
+        this.drawPlayerF1Car(ctx, w, h, horizonY);
+
+        // 6. LÍNEAS DE VELOCIDAD DINÁMICAS
         if (this.turboTimer > 0 || this.speed > 180) {
             this.drawSpeedLines(ctx, w, h);
         }
 
-        // 7. PARTÍCULAS
+        // 7. PARTÍCULAS Y POPUPS
         this.particles.forEach((p) => {
             ctx.fillStyle = p.color;
             ctx.beginPath();
@@ -471,7 +630,6 @@ class LanesGame {
             ctx.fill();
         });
 
-        // 8. POPUPS DE ADELANTAMIENTO ANIMADOS
         this.overtakePopups.forEach((pop) => {
             ctx.save();
             ctx.font = 'bold 34px "Comic Sans MS", cursive, sans-serif';
@@ -484,148 +642,26 @@ class LanesGame {
             ctx.restore();
         });
 
-        // 9. HUD COMPLETO (Barra de Progreso de 1 Minuto, Posición, Velocímetro)
+        // 8. HUD (Barra de progreso, Posición, Velocímetro)
         this.drawHUD(ctx, w, h);
 
-        // 10. SEMÁFORO DE LARGADA (Si está empezando)
+        // 9. SEMÁFORO DE LARGADA
         if (this.startCountdown > 0) {
             this.drawStartLights(ctx, w, h);
         }
 
-        // 11. PANTALLA DE PODIO / VICTORIA
+        // 10. PANTALLA DE PODIO / VICTORIA
         if (this.won) {
             this.drawPodiumScreen(ctx, w, h);
         }
     }
 
-    // Dibuja el cielo, sol y cordilleras chilenas
-    drawSkyAndMountains(ctx, w, h, horizonY, track) {
-        // Degradado de cielo
-        const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
-        skyGrad.addColorStop(0, track.skyTop);
-        skyGrad.addColorStop(1, track.skyBottom);
-        ctx.fillStyle = skyGrad;
-        ctx.fillRect(0, 0, w, horizonY);
-
-        // Sol brillante
-        ctx.fillStyle = '#FFF9A6';
-        ctx.beginPath();
-        ctx.arc(w * 0.8, horizonY * 0.35, 38, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Cordillera chilena de fondo (Parallax según curvas)
-        const curveOffset = this.getRoadCurve(this.playerZ) * 45;
-
-        // Capa de montañas lejanas
-        ctx.fillStyle = track.mountainColor;
-        ctx.beginPath();
-        ctx.moveTo(0, horizonY);
-        for (let x = -50; x <= w + 50; x += 60) {
-            const my = horizonY - 45 - Math.sin((x + curveOffset) * 0.012) * 35 - Math.cos(x * 0.02) * 20;
-            ctx.lineTo(x, my);
-        }
-        ctx.lineTo(w, horizonY);
-        ctx.closePath();
-        ctx.fill();
-
-        // Cumbres nevadas de la cordillera
-        ctx.fillStyle = track.mountainPeak;
-        ctx.beginPath();
-        for (let x = -50; x <= w + 50; x += 60) {
-            const peakY = horizonY - 45 - Math.sin((x + curveOffset) * 0.012) * 35 - Math.cos(x * 0.02) * 20;
-            if (peakY < horizonY - 55) {
-                ctx.moveTo(x - 20, peakY + 18);
-                ctx.lineTo(x, peakY);
-                ctx.lineTo(x + 20, peakY + 18);
-                ctx.closePath();
-            }
-        }
-        ctx.fill();
-    }
-
-    // Renderiza la pista en perspectiva 3D (estilo OutRun / Horizon Chase)
-    draw3DRoad(ctx, w, h, horizonY, track) {
-        const drawDistance = 45; // Segmentos visibles hacia el horizonte
-        const startSeg = Math.floor(this.playerZ / this.segmentLength);
-
-        // Suelo exterior
-        ctx.fillStyle = track.groundColor;
-        ctx.fillRect(0, horizonY, w, h - horizonY);
-
-        // Proyectar segmentos de adelante hacia atrás
-        for (let n = drawDistance; n >= 1; n--) {
-            const segIndex = startSeg + n;
-            const segZ = segIndex * this.segmentLength;
-            const relZ = segZ - this.playerZ;
-            if (relZ <= 0) continue;
-
-            const nextSegZ = (segIndex + 1) * this.segmentLength;
-            const nextRelZ = nextSegZ - this.playerZ;
-
-            // Proyección matemática de perspectiva
-            const scale1 = this.cameraDepth / (relZ * 0.0035);
-            const scale2 = this.cameraDepth / (nextRelZ * 0.0035);
-
-            const hill1 = this.getRoadHill(segZ);
-            const hill2 = this.getRoadHill(nextSegZ);
-
-            const y1 = Math.min(h, Math.max(horizonY, horizonY + (this.cameraHeight - hill1) * scale1 * 0.0028));
-            const y2 = Math.min(h, Math.max(horizonY, horizonY + (this.cameraHeight - hill2) * scale2 * 0.0028));
-
-            const curve1 = this.getRoadCurve(segZ) * 320 * (1 - n / drawDistance);
-            const curve2 = this.getRoadCurve(nextSegZ) * 320 * (1 - (n + 1) / drawDistance);
-
-            const playerScreenOffset1 = (this.playerX * this.roadWidth * 0.5) * scale1 * 0.003;
-            const playerScreenOffset2 = (this.playerX * this.roadWidth * 0.5) * scale2 * 0.003;
-
-            const x1 = (w / 2) + curve1 - playerScreenOffset1;
-            const x2 = (w / 2) + curve2 - playerScreenOffset2;
-
-            const rw1 = this.roadWidth * scale1 * 0.0028;
-            const rw2 = this.roadWidth * scale2 * 0.0028;
-
-            const isAlt = (segIndex % 2) === 0;
-
-            // 1. Pianos / Kerbs de F1 (Rojo y blanco)
-            const kerbW1 = rw1 * 0.16;
-            const kerbW2 = rw2 * 0.16;
-            const kerbCol = isAlt ? track.kerbColor1 : track.kerbColor2;
-
-            ctx.fillStyle = kerbCol;
-            // Kerb izquierdo
-            this.drawTrapezoid(ctx, x1 - rw1 - kerbW1, y1, x1 - rw1, y1, x2 - rw2 - kerbW2, y2, x2 - rw2, y2);
-            // Kerb derecho
-            this.drawTrapezoid(ctx, x1 + rw1, y1, x1 + rw1 + kerbW1, y1, x2 + rw2, y2, x2 + rw2 + kerbW2, y2);
-
-            // 2. Asfalto de la pista
-            ctx.fillStyle = isAlt ? track.asphaltColor1 : track.asphaltColor2;
-            this.drawTrapezoid(ctx, x1 - rw1, y1, x1 + rw1, y1, x2 - rw2, y2, x2 + rw2, y2);
-
-            // 3. Líneas blancas de carriles
-            if (isAlt) {
-                ctx.fillStyle = '#FFFFFF';
-                const laneLineWidth1 = rw1 * 0.025;
-                const laneLineWidth2 = rw2 * 0.025;
-                [-0.33, 0.33].forEach(pos => {
-                    const lx1 = x1 + rw1 * pos;
-                    const lx2 = x2 + rw2 * pos;
-                    this.drawTrapezoid(ctx, lx1 - laneLineWidth1, y1, lx1 + laneLineWidth1, y1, lx2 - laneLineWidth2, y2, lx2 + laneLineWidth2, y2);
-                });
-            }
-
-            // 4. Línea de Meta Cuadriculada en 3D
-            if (Math.abs(segZ - this.trackLength) < this.segmentLength) {
-                this.drawCheckeredFinish3D(ctx, x1, y1, rw1, x2, y2, rw2);
-            }
-        }
-    }
-
     drawTrapezoid(ctx, x1, y1, x2, y1_b, x3, y2, x4, y2_b) {
         ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y1_b);
-        ctx.lineTo(x4, y2_b);
-        ctx.lineTo(x3, y2);
+        ctx.moveTo(x1, y1 + 0.5);
+        ctx.lineTo(x2, y1_b + 0.5);
+        ctx.lineTo(x4, y2_b - 0.5);
+        ctx.lineTo(x3, y2 - 0.5);
         ctx.closePath();
         ctx.fill();
     }
@@ -641,71 +677,67 @@ class LanesGame {
         }
     }
 
-    // Dibuja los 2 items (Turbo y Aceite) y paisajes proyectados en 3D
-    draw3DItems(ctx, w, h, horizonY) {
-        // Proyectar items visibles delante del jugador
-        this.items.forEach((item) => {
-            const relZ = item.z - this.playerZ;
-            if (relZ > 20 && relZ < 2200) {
-                const scale = this.cameraDepth / (relZ * 0.0035);
-                const hill = this.getRoadHill(item.z);
-                const py = horizonY + (this.cameraHeight - hill) * scale * 0.0028;
-                const curve = this.getRoadCurve(item.z) * 320 * (1 - relZ / 2200);
-                const roadW = this.roadWidth * scale * 0.0028;
-                const playerOffset = (this.playerX * this.roadWidth * 0.5) * scale * 0.003;
-                const px = (w / 2) + curve - playerOffset + (item.x * roadW * 0.7);
+    drawSkyAndMountains(ctx, w, h, horizonY, track) {
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+        skyGrad.addColorStop(0, track.skyTop);
+        skyGrad.addColorStop(1, track.skyBottom);
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, w, horizonY);
 
-                const itemScale = scale * 0.0025;
+        // Sol brillante
+        ctx.fillStyle = '#FFF9A6';
+        ctx.beginPath();
+        ctx.arc(w * 0.8, horizonY * 0.35, 38, 0, Math.PI * 2);
+        ctx.fill();
 
-                if (item.type === 'speed') {
-                    this.drawSpeedPad3D(ctx, px, py, itemScale);
-                } else if (item.type === 'oil') {
-                    this.drawOilPuddle3D(ctx, px, py, itemScale);
-                }
+        const curveOffset = this.getSegmentCurve(Math.floor(this.playerZ / 100)) * 2.5;
+
+        // Cordillera chilena de fondo
+        ctx.fillStyle = track.mountainColor;
+        ctx.beginPath();
+        ctx.moveTo(0, horizonY);
+        for (let x = -50; x <= w + 50; x += 60) {
+            const my = horizonY - 45 - Math.sin((x + curveOffset) * 0.012) * 35 - Math.cos(x * 0.02) * 20;
+            ctx.lineTo(x, my);
+        }
+        ctx.lineTo(w, horizonY);
+        ctx.closePath();
+        ctx.fill();
+
+        // Cumbres nevadas
+        ctx.fillStyle = track.mountainPeak;
+        ctx.beginPath();
+        for (let x = -50; x <= w + 50; x += 60) {
+            const peakY = horizonY - 45 - Math.sin((x + curveOffset) * 0.012) * 35 - Math.cos(x * 0.02) * 20;
+            if (peakY < horizonY - 55) {
+                ctx.moveTo(x - 20, peakY + 18);
+                ctx.lineTo(x, peakY);
+                ctx.lineTo(x + 20, peakY + 18);
+                ctx.closePath();
             }
-        });
-
-        // Proyectar elementos del paisaje chileno a los lados
-        this.props.forEach((p) => {
-            const relZ = p.z - this.playerZ;
-            if (relZ > 30 && relZ < 2600) {
-                const scale = this.cameraDepth / (relZ * 0.0035);
-                const hill = this.getRoadHill(p.z);
-                const py = horizonY + (this.cameraHeight - hill) * scale * 0.0028;
-                const curve = this.getRoadCurve(p.z) * 320 * (1 - relZ / 2600);
-                const roadW = this.roadWidth * scale * 0.0028;
-                const playerOffset = (this.playerX * this.roadWidth * 0.5) * scale * 0.003;
-                const px = (w / 2) + curve - playerOffset + (p.x * roadW * 0.85);
-
-                const propScale = scale * 0.0032;
-                if (px > -100 && px < w + 100 && propScale > 0.1) {
-                    this.drawChileanProp(ctx, px, py, p.type, propScale);
-                }
-            }
-        });
+        }
+        ctx.fill();
     }
 
     drawSpeedPad3D(ctx, x, y, scale) {
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(scale * 1.4, scale * 0.7); // Perspectiva achatada
+        ctx.scale(scale * 1.1, scale * 0.55);
 
-        // Resplandor neón
         ctx.fillStyle = '#00E5FF';
         ctx.shadowColor = '#00E5FF';
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 12;
 
-        // 3 Flechas en chevron
         for (let i = 0; i < 3; i++) {
-            const ay = -i * 24;
+            const ay = -i * 22;
             ctx.beginPath();
-            ctx.moveTo(0, ay - 18);
-            ctx.lineTo(26, ay);
-            ctx.lineTo(12, ay);
-            ctx.lineTo(12, ay + 12);
-            ctx.lineTo(-12, ay + 12);
-            ctx.lineTo(-12, ay);
-            ctx.lineTo(-26, ay);
+            ctx.moveTo(0, ay - 16);
+            ctx.lineTo(24, ay);
+            ctx.lineTo(10, ay);
+            ctx.lineTo(10, ay + 12);
+            ctx.lineTo(-10, ay + 12);
+            ctx.lineTo(-10, ay);
+            ctx.lineTo(-24, ay);
             ctx.closePath();
             ctx.fill();
         }
@@ -715,24 +747,23 @@ class LanesGame {
     drawOilPuddle3D(ctx, x, y, scale) {
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(scale * 1.5, scale * 0.65);
+        ctx.scale(scale * 1.25, scale * 0.5);
 
-        // Mancha negra brillante con brillo tornasol
         ctx.fillStyle = '#111111';
         ctx.beginPath();
-        ctx.ellipse(0, 0, 38, 22, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, 36, 20, 0, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.strokeStyle = 'rgba(175, 82, 222, 0.75)';
         ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.arc(-6, -2, 18, 0.2, Math.PI * 0.8);
+        ctx.arc(-6, -2, 16, 0.2, Math.PI * 0.8);
         ctx.stroke();
 
         ctx.strokeStyle = 'rgba(0, 229, 255, 0.75)';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(8, 4, 14, Math.PI * 0.7, Math.PI * 1.6);
+        ctx.arc(8, 4, 12, Math.PI * 0.7, Math.PI * 1.6);
         ctx.stroke();
 
         ctx.restore();
@@ -741,7 +772,7 @@ class LanesGame {
     drawChileanProp(ctx, x, y, type, scale) {
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(scale * 1.8, scale * 1.8);
+        ctx.scale(scale * 1.2, scale * 1.2);
 
         if (type === 'cactus') {
             ctx.fillStyle = '#2E7D32';
@@ -763,7 +794,7 @@ class LanesGame {
             ctx.fillRect(-12, 0, 5, 14);
             ctx.fillRect(8, 0, 5, 14);
             ctx.fillStyle = '#D50000';
-            ctx.fillRect(9, -30, 9, 4); // Collar andino
+            ctx.fillRect(9, -30, 9, 4);
         } else if (type === 'flamingo') {
             ctx.fillStyle = '#FF4081';
             ctx.beginPath();
@@ -815,7 +846,6 @@ class LanesGame {
             ctx.beginPath();
             ctx.ellipse(2, -10, 6, 12, 0, 0, Math.PI * 2);
             ctx.fill();
-            // Banderita chilena
             this.drawMiniFlag(ctx, 12, -24);
         } else if (type === 'iceberg') {
             ctx.fillStyle = '#81D4FA';
@@ -824,7 +854,6 @@ class LanesGame {
             ctx.closePath();
             ctx.fill();
         } else {
-            // Rocas de montaña
             ctx.fillStyle = '#78909C';
             ctx.beginPath();
             ctx.moveTo(-18, 10); ctx.lineTo(0, -24); ctx.lineTo(18, 10);
@@ -849,46 +878,16 @@ class LanesGame {
         ctx.restore();
     }
 
-    // Dibuja los autos rivales en perspectiva 3D
-    draw3DRivals(ctx, w, h, horizonY) {
-        // Ordenar rivales por distancia Z (los más lejanos primero)
-        const sortedRivals = [...this.rivals].sort((a, b) => b.z - a.z);
+    drawPlayerF1Car(ctx, w, h, horizonY) {
+        const cameraZ = this.playerZ - 280;
+        const cameraY = this.cameraY + this.getRoadHill(this.playerZ);
+        const camOffsetX = this.playerX * this.worldHalfW * 0.65;
+        const playerWorldX = this.playerX * this.worldHalfW;
 
-        sortedRivals.forEach((rival) => {
-            const relZ = rival.z - this.playerZ;
-            // Solo dibujar si está en el rango visible
-            if (relZ > -50 && relZ < 2400) {
-                const zDist = Math.max(25, relZ);
-                const scale = this.cameraDepth / (zDist * 0.0035);
-                const hill = this.getRoadHill(rival.z);
-                const py = horizonY + (this.cameraHeight - hill) * scale * 0.0028;
-                const curve = this.getRoadCurve(rival.z) * 320 * (1 - zDist / 2400);
-                const roadW = this.roadWidth * scale * 0.0028;
-                const playerOffset = (this.playerX * this.roadWidth * 0.5) * scale * 0.003;
-                const px = (w / 2) + curve - playerOffset + (rival.x * roadW * 0.65);
+        const proj = this.project(playerWorldX, this.getRoadHill(this.playerZ), this.playerZ, camOffsetX, cameraY, cameraZ, horizonY, w, h);
+        const carX = proj ? proj.x : w / 2;
+        const carY = h - 105;
 
-                const carScale = Math.min(1.2, scale * 0.0038);
-
-                drawF1CarRearView(
-                    ctx,
-                    px,
-                    py,
-                    carScale,
-                    rival.color,
-                    rival.number,
-                    rival.rider,
-                    rival.wobble * 0.1,
-                    false,
-                    false
-                );
-            }
-        });
-    }
-
-    // Dibuja el auto de F1 del jugador en primer plano (Chase Cam)
-    drawPlayerF1Car(ctx, w, h) {
-        const carX = w / 2;
-        const carY = h - 110;
         const hasTurbo = this.turboTimer > 0;
         const isSkidding = this.skidTimer > 0;
 
@@ -896,7 +895,7 @@ class LanesGame {
             ctx,
             carX,
             carY,
-            1.45, // Tamaño grande e imponente
+            1.35,
             GAME_CONFIG.selectedColor,
             1,
             GAME_CONFIG.selectedRider,
@@ -906,12 +905,10 @@ class LanesGame {
         );
     }
 
-    // Líneas de velocidad dinámicas que dan sensación de alta velocidad
     drawSpeedLines(ctx, w, h) {
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
         ctx.lineWidth = 2.5;
-        const count = 14;
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < 14; i++) {
             const x1 = Math.random() < 0.5 ? Math.random() * (w * 0.25) : w - Math.random() * (w * 0.25);
             const y1 = Math.random() * h;
             const len = 40 + Math.random() * 60;
@@ -922,7 +919,6 @@ class LanesGame {
         }
     }
 
-    // Semáforo de largada de F1 con luces animadas
     drawStartLights(ctx, w, h) {
         const sw = 280;
         const sh = 90;
@@ -937,7 +933,7 @@ class LanesGame {
         ctx.fill();
         ctx.stroke();
 
-        const lightsLit = this.startCountdown > 90 ? 1 : (this.startCountdown > 60 ? 2 : (this.startCountdown > 20 ? 3 : 0));
+        const lightsLit = this.startCountdown > 80 ? 1 : (this.startCountdown > 50 ? 2 : (this.startCountdown > 20 ? 3 : 0));
         const isGreen = this.startCountdown <= 20;
 
         for (let i = 0; i < 3; i++) {
@@ -959,11 +955,10 @@ class LanesGame {
         }
     }
 
-    // HUD con diseño moderno y deportivo de F1
     drawHUD(ctx, w, h) {
         const track = this.getCurrentTrack();
 
-        // 1. PLACA DE POSICIÓN EN CARRERA (Arriba a la izquierda)
+        // 1. PLACA DE POSICIÓN
         const isPodium = this.playerRank <= 3;
         ctx.fillStyle = 'rgba(20, 20, 20, 0.85)';
         ctx.strokeStyle = this.playerRank === 1 ? '#FFD700' : (isPodium ? '#00E5FF' : '#FF9500');
@@ -981,13 +976,12 @@ class LanesGame {
         ctx.font = 'bold 22px "Comic Sans MS", cursive, sans-serif';
         ctx.fillText(`${this.playerRank}º Lugar`, 68, 52);
 
-        // 2. BARRA DE PROGRESO DE LA CARRERA DE 1 MINUTO (Centro superior)
+        // 2. BARRA DE PROGRESO
         const barW = Math.min(380, w * 0.46);
         const barX = (w - barW) / 2;
         const barY = 22;
         const barH = 22;
 
-        // Nombre de la pista chilena
         ctx.fillStyle = '#FFFFFF';
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 4;
@@ -996,7 +990,6 @@ class LanesGame {
         ctx.strokeText(`🇨🇱 Pista ${this.currentTrackIndex + 1}: ${track.name}`, w / 2, barY - 6);
         ctx.fillText(`🇨🇱 Pista ${this.currentTrackIndex + 1}: ${track.name}`, w / 2, barY - 6);
 
-        // Fondo de la barra
         ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 2.5;
@@ -1005,7 +998,6 @@ class LanesGame {
         ctx.fill();
         ctx.stroke();
 
-        // Relleno de progreso
         const progress = Math.min(1, Math.max(0, this.playerZ / this.trackLength));
         if (progress > 0.02) {
             const progGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
@@ -1019,13 +1011,12 @@ class LanesGame {
             ctx.fill();
         }
 
-        // Mini autito de F1 en la barra
         const carProgressX = barX + (barW - 22) * progress;
         ctx.font = '18px sans-serif';
         ctx.fillText('🏎️', carProgressX, barY + 17);
         ctx.fillText('🏁', barX + barW + 12, barY + 17);
 
-        // 3. VELOCÍMETRO DIGITAL DE F1 (Abajo a la derecha)
+        // 3. VELOCÍMETRO
         const speedKmh = Math.floor(this.speed);
         ctx.fillStyle = 'rgba(20, 20, 20, 0.85)';
         ctx.strokeStyle = this.turboTimer > 0 ? '#00E5FF' : (this.skidTimer > 0 ? '#FF9500' : '#FFFFFF');
@@ -1045,7 +1036,6 @@ class LanesGame {
         ctx.fillText('KM/H', w - 42, 48);
     }
 
-    // Pantalla de Podio y Avance de Pista
     drawPodiumScreen(ctx, w, h) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
         ctx.fillRect(0, 0, w, h);
@@ -1081,7 +1071,6 @@ class LanesGame {
             ctx.font = 'bold 21px "Comic Sans MS", cursive, sans-serif';
             ctx.fillText(`¡Terminaste en ${this.playerRank}º Lugar en ${track.name}!`, w / 2, by + 150);
 
-            // Dibujo de los 3 cajones del podio
             this.drawPodiumSteps(ctx, w / 2, by + 235);
 
             const isLastTrack = this.currentTrackIndex >= this.tracks.length - 1;
@@ -1131,25 +1120,21 @@ class LanesGame {
 
     drawPodiumSteps(ctx, cx, cy) {
         ctx.save();
-        // 2º Lugar
         ctx.fillStyle = '#B0BEC5';
         ctx.fillRect(cx - 100, cy - 35, 60, 45);
         ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 18px sans-serif';
         ctx.fillText('2º', cx - 70, cy - 8);
 
-        // 1º Lugar
         ctx.fillStyle = '#FFD700';
         ctx.fillRect(cx - 35, cy - 55, 70, 65);
         ctx.fillStyle = '#222';
         ctx.fillText('1º 🏆', cx, cy - 18);
 
-        // 3º Lugar
         ctx.fillStyle = '#CD7F32';
         ctx.fillRect(cx + 40, cy - 25, 60, 35);
         ctx.fillStyle = '#FFFFFF';
         ctx.fillText('3º', cx + 70, cy - 2);
-
         ctx.restore();
     }
 
