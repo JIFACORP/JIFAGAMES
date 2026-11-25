@@ -782,7 +782,7 @@ class LanesGame {
     drawChileanProp(ctx, x, y, type, scale) {
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(scale * 1.2, scale * 1.2);
+        ctx.scale(scale * 1.65, scale * 1.65);
 
         if (type === 'cactus') {
             ctx.fillStyle = '#2E7D32';
@@ -975,7 +975,7 @@ class LanesGame {
         // BARRA DE PROGRESO (En móvil va debajo de los botones HTML del top bar; en desktop va centrada arriba)
         const barW = isMobile ? Math.max(180, w - 56) : Math.min(380, w - 340);
         const barX = (w - barW) / 2;
-        const barY = isMobile ? 74 : 26;
+        const barY = isMobile ? 74 : 34;
         const barH = isMobile ? 18 : 22;
 
         ctx.fillStyle = '#FFFFFF';
@@ -1013,7 +1013,7 @@ class LanesGame {
         ctx.fillText('🏁', barX + barW + 12, barY + barH - 3);
 
         // PLACA DE POSICIÓN (Debajo de barra en móvil, o debajo del botón Menú en desktop)
-        const pillY = isMobile ? 102 : 66;
+        const pillY = isMobile ? 102 : 70;
         const rankW = isMobile ? 128 : 156;
         const pillH = isMobile ? 40 : 48;
 
