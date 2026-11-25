@@ -123,11 +123,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     colorsContainer.addEventListener('click', (e) => {
-        const btn = e.target.closest('.color-btn');
+        const btn = e.target.closest('.team-btn, .color-btn');
         if (!btn) return;
-        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.team-btn, .color-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         GAME_CONFIG.selectedColor = btn.dataset.color;
+        if (btn.dataset.team) {
+            GAME_CONFIG.selectedTeam = btn.dataset.team;
+        }
 
         if (window.soundController) {
             window.soundController.playStar();

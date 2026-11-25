@@ -79,7 +79,7 @@ class LanesGame {
         // Configuración del mundo 3D
         this.trackLength = 54000;   // ~60 segundos a velocidad F1 (245 km/h = 15 u/frame)
         this.segmentLength = 100;   // 540 segmentos
-        this.worldHalfW = 460;      // Mitad del ancho de la carretera en el mundo
+        this.worldHalfW = 550;      // Pista más ancha para comodidad y adelantamientos
         this.cameraY = 850;         // Altura de cámara sobre el asfalto
 
         this.initRoad();
@@ -181,11 +181,11 @@ class LanesGame {
             }
         ];
 
-        // EXACTAMENTE 2 ITEMS EN PISTA: 'speed' (Lata Red Bull Turbo) y 'oil' (Charco de Aceite)
+        // EXACTAMENTE 2 ITEMS EN PISTA (Espaciados cada ~4.7s para no saturar la pista)
         this.items = [];
-        for (let z = 1800; z < this.trackLength - 2000; z += 1900) {
-            const laneX = (Math.random() - 0.5) * 1.2;
-            const type = Math.random() < 0.55 ? 'speed' : 'oil';
+        for (let z = 3200; z < this.trackLength - 3000; z += 4200) {
+            const laneX = (Math.random() - 0.5) * 1.25;
+            const type = Math.random() < 0.52 ? 'speed' : 'oil';
             this.items.push({
                 z: z,
                 x: laneX,
@@ -436,8 +436,8 @@ class LanesGame {
 
         const scale = 300.0 / dz;
         const roadH = h - horizonY;
-        // En pantallas angostas (iPhone vertical), reducir widthFactor para ver pianos y paisaje
-        const widthFactor = w < 600 ? (w * 0.68) / 1000.0 : Math.min(w, 850) / 1000.0;
+        // Pista ancha y proporcional tanto en iPhone como en Desktop
+        const widthFactor = w < 600 ? (w * 0.65) / 1000.0 : Math.min(w, 950) / 1000.0;
 
         const screenY = horizonY + (cameraY - worldY) * scale * (roadH / 1000.0);
         const screenX = (w / 2) + (worldX - cameraX) * scale * widthFactor;
@@ -616,7 +616,7 @@ class LanesGame {
                     const p = interpAtZ(rival.z);
                     const rx = p.x + rival.x * p.rw;
                     const ry = p.y;
-                    const carScale = p.scale * 1.15;
+                    const carScale = p.scale * 0.92;
                     const tilt = rival.wobble > 0 ? Math.sin(rival.wobble * 0.45) * 0.35 : 0;
 
                     if (ry >= playerCarY) {
@@ -872,27 +872,54 @@ class LanesGame {
         ctx.restore();
     }
 
+    // CHARCO DE ACEITE DE ALTO CONTRASTE (Bien visible sobre el asfalto)
     drawOilPuddle3D(ctx, x, y, scale) {
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(scale * 1.25, scale * 0.5);
+        ctx.scale(scale * 1.65, scale * 0.72);
 
-        ctx.fillStyle = '#111111';
+        // Halo exterior brillante ámbar/tornasol para destacar en el asfalto oscuro
+        ctx.fillStyle = 'rgba(255, 160, 0, 0.45)';
         ctx.beginPath();
-        ctx.ellipse(0, 0, 36, 20, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, 44, 24, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.strokeStyle = 'rgba(175, 82, 222, 0.75)';
-        ctx.lineWidth = 4;
+        // Cuerpo principal del charco (Negro brillante profundo)
+        ctx.fillStyle = '#09050D';
         ctx.beginPath();
-        ctx.arc(-6, -2, 16, 0.2, Math.PI * 0.8);
+        ctx.ellipse(0, 0, 39, 20, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Gotas salpicadas a los lados
+        ctx.beginPath();
+        ctx.arc(-32, 8, 7, 0, Math.PI * 2);
+        ctx.arc(34, -6, 8, 0, Math.PI * 2);
+        ctx.arc(20, 14, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Borde iridiscente tornasol (Morado + Turquesa + Dorado)
+        ctx.strokeStyle = '#E040FB';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 34, 16, 0.1, 0.2, Math.PI * 1.1);
         ctx.stroke();
 
-        ctx.strokeStyle = 'rgba(0, 229, 255, 0.75)';
+        ctx.strokeStyle = '#00E5FF';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(8, 4, 12, Math.PI * 0.7, Math.PI * 1.6);
+        ctx.ellipse(0, 0, 30, 13, 0.1, Math.PI * 1.15, Math.PI * 1.9);
         ctx.stroke();
+
+        // Reflejos blancos brillantes de líquido húmedo
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.beginPath();
+        ctx.ellipse(-12, -6, 10, 3.5, -0.25, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.8)';
+        ctx.beginPath();
+        ctx.ellipse(12, 4, 7, 2.5, 0.2, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.restore();
     }
@@ -1016,10 +1043,12 @@ class LanesGame {
         const carX = proj ? proj.x : w / 2;
         const isMobile = w < 640;
         const carY = isMobile ? h - 135 : h - 105;
-        const carScale = isMobile ? Math.max(0.85, Math.min(1.15, w / 400)) : 1.35;
+        const carScale = isMobile ? Math.max(0.72, Math.min(0.88, w / 480)) : 1.05;
 
         const hasTurbo = this.turboTimer > 0;
         const isSkidding = this.skidTimer > 0;
+        const teamId = GAME_CONFIG.selectedTeam || 'ferrari';
+        const teamNum = GAME_CONFIG.teams && GAME_CONFIG.teams[teamId] ? GAME_CONFIG.teams[teamId].number : 1;
 
         drawF1CarRearView(
             ctx,
@@ -1027,11 +1056,12 @@ class LanesGame {
             carY,
             carScale,
             GAME_CONFIG.selectedColor,
-            1,
+            teamNum,
             GAME_CONFIG.selectedRider,
             this.tilt,
             hasTurbo,
-            isSkidding
+            isSkidding,
+            teamId
         );
     }
 

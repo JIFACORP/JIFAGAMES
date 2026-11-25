@@ -266,6 +266,30 @@ body.in-game #btn-qr {
     border: 4px solid #333;
 }
 
+/* Botones Escuderías de Fórmula 1 */
+.team-btn {
+    font-family: 'Exo 2', sans-serif;
+    font-style: italic;
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.65);
+    padding: 9px 14px;
+    border-radius: 14px;
+    border: 3px solid #ffffff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.22);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.team-btn.active {
+    transform: scale(1.12);
+    border: 3.5px solid #111111;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.35), 0 0 0 3px #ffcc00;
+}
+
 /* BOTONES TÁCTILES GRANDES EN PANTALLA (Para niños de 4 años) */
 .touch-controls {
     position: absolute;
@@ -452,6 +476,11 @@ body.in-game #btn-qr {
     .color-btn {
         width: 32px;
         height: 32px;
+    }
+
+    .team-btn {
+        font-size: 0.78rem;
+        padding: 7px 11px;
     }
 
     .touch-controls {

@@ -19,20 +19,25 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 
 const GAME_CONFIG = {
     selectedRider: 'perrito', // 'perrito', 'gatito', 'dino', 'osito'
-    selectedColor: '#FF3B30', // Color del vehículo
+    selectedColor: '#DC0000', // Color principal del vehículo
+    selectedTeam: 'ferrari',  // 'ferrari', 'mercedes', 'redbull', 'mclaren'
     riders: [
         { id: 'perrito', name: '🐶 Perrito', desc: '¡Super amigable y valiente!' },
         { id: 'gatito', name: '🐱 Gatito', desc: '¡Rápido y curioso!' },
         { id: 'dino', name: '🦖 Dino', desc: '¡Fuerte y con rugido veloz!' },
         { id: 'osito', name: '🐻 Osito', desc: '¡Cariñoso y aventurero!' }
     ],
+    teams: {
+        ferrari:  { name: 'Ferrari',  body: '#DC0000', accent: '#FFCC00', wing: '#DC0000', endplate: '#181818', stripe: '#FFFFFF', number: 16 },
+        mercedes: { name: 'Mercedes', body: '#2C353C', accent: '#00D2BE', wing: '#1E2429', endplate: '#00D2BE', stripe: '#00D2BE', number: 44 },
+        redbull:  { name: 'Red Bull', body: '#121F45', accent: '#FFCC00', wing: '#121F45', endplate: '#E10600', stripe: '#E10600', number: 1  },
+        mclaren:  { name: 'McLaren',  body: '#FF8000', accent: '#00AEEF', wing: '#18181B', endplate: '#FF8000', stripe: '#18181B', number: 4  }
+    },
     colors: [
-        { name: 'Rojo Fuego', hex: '#FF3B30' },
-        { name: 'Azul Rayo', hex: '#007AFF' },
-        { name: 'Verde Dino', hex: '#34C759' },
-        { name: 'Amarillo Sol', hex: '#FFCC00' },
-        { name: 'Rosa Mágico', hex: '#FF2D55' },
-        { name: 'Naranja Cohete', hex: '#FF9500' }
+        { name: 'Ferrari', hex: '#DC0000' },
+        { name: 'Mercedes', hex: '#00D2BE' },
+        { name: 'Red Bull', hex: '#121F45' },
+        { name: 'McLaren', hex: '#FF8000' }
     ]
 };
 
@@ -552,11 +557,19 @@ function drawF1PilotHead(ctx, x, y, helmetColor, rider) {
 // =======================================================
 // 3. AUTO DE FÓRMULA 1 EN PERSPECTIVA 3D (VISTA TRASERA)
 // =======================================================
-function drawF1CarRearView(ctx, x, y, scale = 1, carColor = '#FF3B30', number = 1, rider = 'perrito', tilt = 0, hasTurbo = false, isSkidding = false) {
+function drawF1CarRearView(ctx, x, y, scale = 1, carColor = '#DC0000', number = 1, rider = 'perrito', tilt = 0, hasTurbo = false, isSkidding = false, teamId = null) {
     if (scale <= 0.05) return;
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale, scale);
+
+    // Determinar paleta de escudería si está definida
+    const team = teamId && GAME_CONFIG.teams[teamId] ? GAME_CONFIG.teams[teamId] : null;
+    const bodyCol = team ? team.body : carColor;
+    const wingCol = team ? team.wing : carColor;
+    const endplateCol = team ? team.endplate : '#181818';
+    const accentCol = team ? team.accent : '#FFFFFF';
+    const stripeCol = team ? team.stripe : '#FFFFFF';
 
     // Inclinación suave de la carrocería en curvas
     const rollAngle = tilt * 0.12 + (isSkidding ? Math.sin(Date.now() * 0.04) * 0.15 : 0);
@@ -667,11 +680,11 @@ function drawF1CarRearView(ctx, x, y, scale = 1, carColor = '#FF3B30', number = 
         ctx.shadowBlur = 0;
     }
 
-    // 8. Chasis / Carrocería Trasera con color deportivo
+    // 8. Chasis / Carrocería Trasera con colores de escudería
     const bodyGrad = ctx.createLinearGradient(-26, 0, 26, 0);
-    bodyGrad.addColorStop(0, carColor);
-    bodyGrad.addColorStop(0.5, lightenColor(carColor, 25));
-    bodyGrad.addColorStop(1, carColor);
+    bodyGrad.addColorStop(0, bodyCol);
+    bodyGrad.addColorStop(0.5, lightenColor(bodyCol, 28));
+    bodyGrad.addColorStop(1, bodyCol);
 
     ctx.fillStyle = bodyGrad;
     ctx.beginPath();
@@ -683,9 +696,14 @@ function drawF1CarRearView(ctx, x, y, scale = 1, carColor = '#FF3B30', number = 
     ctx.lineTo(24, 12);
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = '#FFFFFF';
+    ctx.strokeStyle = stripeCol;
     ctx.lineWidth = 2;
     ctx.stroke();
+
+    // Franja lateral de escudería en los pontones
+    ctx.fillStyle = accentCol;
+    ctx.fillRect(-20, -4, 5, 14);
+    ctx.fillRect(15, -4, 5, 14);
 
     // Aleta de tiburón dorsal (Shark fin)
     ctx.fillStyle = '#1A1A1A';
@@ -696,14 +714,18 @@ function drawF1CarRearView(ctx, x, y, scale = 1, carColor = '#FF3B30', number = 
     ctx.lineTo(-2, -28);
     ctx.fill();
 
-    // Toma de aire superior negra (Airbox)
+    // Toma de aire superior (Airbox con detalle de escudería)
+    ctx.fillStyle = accentCol;
+    ctx.beginPath();
+    ctx.ellipse(0, -26, 7.5, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = '#111111';
     ctx.beginPath();
-    ctx.ellipse(0, -26, 6, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -26, 4.5, 3, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // 9. Piloto y Casco en el Cockpit
-    drawF1PilotRear(ctx, 0, -12, carColor, rider);
+    drawF1PilotRear(ctx, 0, -12, bodyCol, rider);
 
     // 10. Gran Alerón Trasero de F1 (Rear Wing)
     ctx.fillStyle = '#222222';
@@ -711,20 +733,20 @@ function drawF1CarRearView(ctx, x, y, scale = 1, carColor = '#FF3B30', number = 
     ctx.fillRect(4, -18, 3, 18);
 
     const wingGrad = ctx.createLinearGradient(-48, -26, 48, -26);
-    wingGrad.addColorStop(0, carColor);
-    wingGrad.addColorStop(0.5, lightenColor(carColor, 35));
-    wingGrad.addColorStop(1, carColor);
+    wingGrad.addColorStop(0, wingCol);
+    wingGrad.addColorStop(0.5, lightenColor(wingCol, 32));
+    wingGrad.addColorStop(1, wingCol);
 
     ctx.fillStyle = wingGrad;
     ctx.beginPath();
     ctx.roundRect(-46, -26, 92, 11, 2);
     ctx.fill();
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = stripeCol;
+    ctx.lineWidth = 1.6;
     ctx.stroke();
 
     // Endplates laterales verticales del alerón
-    ctx.fillStyle = '#181818';
+    ctx.fillStyle = endplateCol;
     ctx.beginPath();
     ctx.roundRect(-49, -32, 6, 20, 2);
     ctx.roundRect(43, -32, 6, 20, 2);
@@ -733,7 +755,7 @@ function drawF1CarRearView(ctx, x, y, scale = 1, carColor = '#FF3B30', number = 
     // Número de carrera en el centro del alerón
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(0, -20.5, 6, 0, Math.PI * 2);
+    ctx.arc(0, -20.5, 6.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#111111';
     ctx.font = '900 8px "Orbitron", sans-serif';
