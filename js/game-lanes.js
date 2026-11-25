@@ -979,24 +979,26 @@ class LanesGame {
 
         const skyShift = this.skyOffset || 0;
 
-        // Sol brillante con paralaje suave al girar en curvas
-        const sunWrap = w + 180;
-        const sunX = ((((w * 0.8 - skyShift * 0.28) % sunWrap) + sunWrap) % sunWrap) - 90;
+        // Sol brillante desplazándose suavemente sin cortes ni saltos
+        const sunX = w * 0.76 - Math.sin(skyShift * 0.0018) * (w * 0.24);
         ctx.fillStyle = '#FFF9A6';
         ctx.beginPath();
-        ctx.arc(sunX, horizonY * 0.34, 36, 0, Math.PI * 2);
+        ctx.arc(sunX, horizonY * 0.34, 34, 0, Math.PI * 2);
         ctx.fill();
 
-        // Nubes suaves rígidas que rotan con el cielo
+        // Nubes suaves rígidas en paralaje lento
         const cloudTileW = 720;
-        const cloudShift = ((skyShift * 0.45) % cloudTileW + cloudTileW) % cloudTileW;
+        const cloudShift = ((skyShift * 0.35) % cloudTileW + cloudTileW) % cloudTileW;
         ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, w, horizonY + 1);
+        ctx.clip();
         ctx.translate(-cloudShift, 0);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.42)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.40)';
         const cloudCount = Math.ceil((w + cloudTileW) / cloudTileW) + 1;
         for (let rep = 0; rep < cloudCount; rep++) {
             const bx = rep * cloudTileW;
-            [[110, 0.28, 34], [360, 0.20, 26], [590, 0.32, 30]].forEach(([cx, cyf, cr]) => {
+            [[110, 0.27, 30], [360, 0.19, 24], [590, 0.31, 28]].forEach(([cx, cyf, cr]) => {
                 const cy = horizonY * cyf;
                 ctx.beginPath();
                 ctx.arc(bx + cx, cy, cr, 0, Math.PI * 2);
@@ -1007,15 +1009,16 @@ class LanesGame {
         }
         ctx.restore();
 
-        // Cordillera chilena rígida (geometría periódica continua: no se deforma ni "baila")
-        const tileW = 720;
+        // Cordillera chilena poligonal rígida (cimas fijas sin "baile" ni vértices flotantes)
+        const tileW = 800;
         const shift = ((skyShift % tileW) + tileW) % tileW;
-        const step = 24;
-        const totalSpan = Math.ceil((w + tileW) / tileW) * tileW + tileW;
-        const mountainYAt = (mx) => {
-            const ph = (mx / tileW) * Math.PI * 2;
-            return horizonY - 40 - Math.sin(ph * 2) * 26 - Math.cos(ph * 3) * 18 - Math.sin(ph * 5) * 7;
-        };
+        const reps = Math.ceil((w + tileW) / tileW) + 1;
+        // Perfil cerrado y continuo de 0 a 800 (misma altura 22 en x=0 y x=800)
+        const profile = [
+            [0, 22], [75, 72], [140, 34], [235, 96], [330, 28],
+            [420, 68], [500, 32], [605, 88], [710, 42], [800, 22]
+        ];
+        const snowLineH = 54;
 
         ctx.save();
         ctx.beginPath();
@@ -1023,31 +1026,26 @@ class LanesGame {
         ctx.clip();
         ctx.translate(-shift, 0);
 
-        ctx.fillStyle = track.mountainColor;
+        // Construir silueta rígida de todas las repeticiones de la cordillera
         ctx.beginPath();
         ctx.moveTo(0, horizonY);
-        for (let mx = 0; mx <= totalSpan; mx += step) {
-            ctx.lineTo(mx, mountainYAt(mx));
+        for (let rep = 0; rep < reps; rep++) {
+            const ox = rep * tileW;
+            profile.forEach(([px, py]) => {
+                ctx.lineTo(ox + px, horizonY - py);
+            });
         }
-        ctx.lineTo(totalSpan, horizonY);
+        ctx.lineTo(reps * tileW, horizonY);
         ctx.closePath();
+
+        ctx.fillStyle = track.mountainColor;
         ctx.fill();
 
-        // Cumbres nevadas fijas a las mismas cimas rígidas
+        // Recortar estrictamente DENTRO de la cordillera para dibujar nieve limpia solo en las cumbres
+        ctx.clip();
         ctx.fillStyle = track.mountainPeak;
-        ctx.beginPath();
-        for (let mx = step; mx < totalSpan - step; mx += step) {
-            const yL = mountainYAt(mx - step);
-            const yC = mountainYAt(mx);
-            const yR = mountainYAt(mx + step);
-            if (yC <= yL && yC < yR && yC < horizonY - 52) {
-                ctx.moveTo(mx - 22, yC + 20);
-                ctx.lineTo(mx, yC);
-                ctx.lineTo(mx + 22, yC + 20);
-                ctx.closePath();
-            }
-        }
-        ctx.fill();
+        ctx.fillRect(0, 0, reps * tileW, horizonY - snowLineH);
+
         ctx.restore();
     }
 
