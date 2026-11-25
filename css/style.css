@@ -235,19 +235,37 @@ body.in-game #btn-qr {
 }
 
 .rider-btn {
-    background: #f0f0f0;
-    border: 3px solid #ccc;
+    background: #f4f6f9;
+    border: 3px solid #d0d7de;
     border-radius: 18px;
-    padding: 8px 12px;
-    font-size: 1.8rem;
+    padding: 6px 14px;
+    font-family: 'Exo 2', sans-serif;
+    font-style: italic;
+    font-weight: 800;
+    font-size: 1rem;
+    color: #222;
     cursor: pointer;
     transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pilot-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center 20%;
+    border: 2.5px solid #ffffff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.22);
+    background: #ffffff;
 }
 
 .rider-btn.active {
     background: #ffecb3;
     border-color: #ff9800;
-    transform: scale(1.15);
+    transform: scale(1.08);
     box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
 }
 
@@ -469,8 +487,14 @@ body.in-game #btn-qr {
     }
 
     .rider-btn {
-        font-size: 1.45rem;
-        padding: 6px 10px;
+        font-size: 0.9rem;
+        padding: 5px 11px;
+        gap: 6px;
+    }
+
+    .pilot-avatar {
+        width: 36px;
+        height: 36px;
     }
 
     .color-btn {

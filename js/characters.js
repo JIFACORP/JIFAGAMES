@@ -17,15 +17,21 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
     };
 }
 
+const PILOT_AVATARS = {
+    joaquin: new Image(),
+    ignacio: new Image()
+};
+PILOT_AVATARS.joaquin.src = 'assets/joaquin.jpg';
+PILOT_AVATARS.ignacio.src = 'assets/ignacio.jpg';
+window.PILOT_AVATARS = PILOT_AVATARS;
+
 const GAME_CONFIG = {
-    selectedRider: 'perrito', // 'perrito', 'gatito', 'dino', 'osito'
+    selectedRider: 'joaquin', // 'joaquin', 'ignacio'
     selectedColor: '#DC0000', // Color principal del vehículo
     selectedTeam: 'ferrari',  // 'ferrari', 'mercedes', 'redbull', 'mclaren'
     riders: [
-        { id: 'perrito', name: '🐶 Perrito', desc: '¡Super amigable y valiente!' },
-        { id: 'gatito', name: '🐱 Gatito', desc: '¡Rápido y curioso!' },
-        { id: 'dino', name: '🦖 Dino', desc: '¡Fuerte y con rugido veloz!' },
-        { id: 'osito', name: '🐻 Osito', desc: '¡Cariñoso y aventurero!' }
+        { id: 'joaquin', name: 'Joaquín', desc: '¡Piloto estrella con boina!' },
+        { id: 'ignacio', name: 'Ignacio', desc: '¡Piloto experto con estilo!' }
     ],
     teams: {
         ferrari:  { name: 'Ferrari',  body: '#DC0000', accent: '#FFCC00', wing: '#DC0000', endplate: '#181818', stripe: '#FFFFFF', number: 16 },
@@ -189,8 +195,8 @@ function drawSideRider(ctx, rider, helmetColor) {
     ctx.save();
     ctx.translate(-8, -14);
 
-    // Patitas
-    ctx.strokeStyle = '#3b5998';
+    // Patitas / Piernas
+    ctx.strokeStyle = '#2B3A4A';
     ctx.lineWidth = 6;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -199,14 +205,33 @@ function drawSideRider(ctx, rider, helmetColor) {
     ctx.lineTo(16, 12);
     ctx.stroke();
 
-    // Torso
-    ctx.fillStyle = '#FF9500';
+    // Torso según piloto humano Funko Pop
+    const isJoaquin = rider === 'joaquin';
+    const torsoColor = isJoaquin ? '#D32F2F' : (rider === 'ignacio' ? '#F5A623' : '#FF9500');
+    ctx.fillStyle = torsoColor;
     ctx.beginPath();
     ctx.roundRect(-6, -14, 15, 18, 5);
     ctx.fill();
 
+    if (isJoaquin) {
+        // Camisa blanca y pañuelo negro en el cuello
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(4, -13, 5, 14);
+        ctx.fillStyle = '#181818';
+        ctx.beginPath();
+        ctx.moveTo(-2, -14); ctx.lineTo(8, -14); ctx.lineTo(6, -7);
+        ctx.closePath();
+        ctx.fill();
+    } else if (rider === 'ignacio') {
+        // Capucha dorada
+        ctx.fillStyle = '#D98200';
+        ctx.beginPath();
+        ctx.roundRect(-8, -15, 12, 7, 3);
+        ctx.fill();
+    }
+
     // Brazos
-    ctx.strokeStyle = '#FF9500';
+    ctx.strokeStyle = isJoaquin ? '#FFFFFF' : torsoColor;
     ctx.lineWidth = 5;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -214,8 +239,80 @@ function drawSideRider(ctx, rider, helmetColor) {
     ctx.lineTo(16, -7);
     ctx.stroke();
 
-    // Cabeza y Casco
-    ctx.translate(4, -20);
+    // Cabeza grande estilo Funko Pop
+    ctx.translate(4, -22);
+    if (isJoaquin || rider === 'ignacio') {
+        // Oreja izquierda
+        ctx.fillStyle = '#E0B28B';
+        ctx.beginPath();
+        ctx.arc(-13, 2, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cabeza cuadrada redondeada Funko Pop
+        ctx.fillStyle = '#F2C9A5';
+        ctx.beginPath();
+        ctx.roundRect(-14, -13, 28, 25, 9);
+        ctx.fill();
+        ctx.strokeStyle = '#D9A77E';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Ojo negro brillante estilo Funko Pop
+        ctx.fillStyle = '#111111';
+        ctx.beginPath();
+        ctx.arc(6, 0, 4.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(7.3, -1.4, 1.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sonrisa
+        ctx.strokeStyle = '#7A4932';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.arc(5, 5, 4, 0.1, 1.3);
+        ctx.stroke();
+
+        if (isJoaquin) {
+            // Pelo castaño + boina negra ladeada
+            ctx.fillStyle = '#5D4037';
+            ctx.beginPath();
+            ctx.roundRect(-14, -13, 24, 9, 4);
+            ctx.fill();
+
+            ctx.fillStyle = '#1B1B1E';
+            ctx.beginPath();
+            ctx.ellipse(-2, -12, 17, 6.5, -0.18, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#3A3A40';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+        } else {
+            // Pelo corto oscuro + barba sutil + lentes de sol sobre la cabeza
+            ctx.fillStyle = '#2B211E';
+            ctx.beginPath();
+            ctx.roundRect(-14, -14, 27, 9, 5);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(60, 45, 38, 0.25)';
+            ctx.beginPath();
+            ctx.roundRect(-6, 4, 19, 8, 4);
+            ctx.fill();
+
+            // Lentes de sol sobre la cabeza
+            ctx.fillStyle = '#222222';
+            ctx.beginPath();
+            ctx.roundRect(-5, -18, 18, 5.5, 2);
+            ctx.fill();
+            ctx.fillStyle = '#455A64';
+            ctx.fillRect(2, -17, 8, 3.5);
+        }
+
+        ctx.restore();
+        return;
+    }
+
     ctx.fillStyle = helmetColor;
     ctx.beginPath();
     ctx.arc(0, 0, 15, 0, Math.PI * 2);
@@ -475,6 +572,44 @@ function drawF1PilotHead(ctx, x, y, helmetColor, rider) {
     ctx.translate(x, y);
 
     // Casco
+    if (rider === 'joaquin') {
+        ctx.fillStyle = '#F2C9A5';
+        ctx.beginPath();
+        ctx.roundRect(-8, -7, 16, 13, 4);
+        ctx.fill();
+        ctx.fillStyle = '#111111';
+        ctx.beginPath();
+        ctx.arc(-3.5, 0, 2, 0, Math.PI * 2);
+        ctx.arc(3.5, 0, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#5D4037';
+        ctx.fillRect(-7, -7, 14, 4);
+        ctx.fillStyle = '#19191D';
+        ctx.beginPath();
+        ctx.ellipse(-1.5, -7, 10, 4, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        return;
+    }
+
+    if (rider === 'ignacio') {
+        ctx.fillStyle = '#F2C9A5';
+        ctx.beginPath();
+        ctx.roundRect(-8, -7, 16, 13, 4);
+        ctx.fill();
+        ctx.fillStyle = '#111111';
+        ctx.beginPath();
+        ctx.arc(-3.5, 0, 2, 0, Math.PI * 2);
+        ctx.arc(3.5, 0, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#2B211E';
+        ctx.fillRect(-8, -8, 16, 5);
+        ctx.fillStyle = '#181818';
+        ctx.fillRect(-8, -10, 16, 3);
+        ctx.restore();
+        return;
+    }
+
     ctx.fillStyle = helmetColor;
     ctx.beginPath();
     ctx.arc(0, 0, 7.5, 0, Math.PI * 2);
@@ -557,7 +692,7 @@ function drawF1PilotHead(ctx, x, y, helmetColor, rider) {
 // =======================================================
 // 3. AUTO DE FÓRMULA 1 EN PERSPECTIVA 3D (VISTA TRASERA)
 // =======================================================
-function drawF1CarRearView(ctx, x, y, scale = 1, carColor = '#DC0000', number = 1, rider = 'perrito', tilt = 0, hasTurbo = false, isSkidding = false, teamId = null) {
+function drawF1CarRearView(ctx, x, y, scale = 1, carColor = '#DC0000', number = 1, rider = 'joaquin', tilt = 0, hasTurbo = false, isSkidding = false, teamId = null) {
     if (scale <= 0.05) return;
     ctx.save();
     ctx.translate(x, y);
@@ -770,6 +905,92 @@ function drawF1PilotRear(ctx, x, y, helmetColor, rider) {
     ctx.save();
     ctx.translate(x, y);
 
+    if (rider === 'joaquin') {
+        // Hombros: chaleco rojo + pañuelo negro estilo Funko Pop Joaquín
+        ctx.fillStyle = '#D32F2F';
+        ctx.beginPath();
+        ctx.roundRect(-13, 3, 26, 9, 4);
+        ctx.fill();
+        ctx.fillStyle = '#181818';
+        ctx.beginPath();
+        ctx.moveTo(-7, 3); ctx.lineTo(7, 3); ctx.lineTo(0, 9);
+        ctx.closePath();
+        ctx.fill();
+
+        // Orejas y cabeza cuadrada redondeada Funko Pop
+        ctx.fillStyle = '#E0B28B';
+        ctx.beginPath();
+        ctx.arc(-11.5, -3, 3, 0, Math.PI * 2);
+        ctx.arc(11.5, -3, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#F2C9A5';
+        ctx.beginPath();
+        ctx.roundRect(-11, -12, 22, 16, 6);
+        ctx.fill();
+
+        // Cabello castaño posterior
+        ctx.fillStyle = '#5D4037';
+        ctx.beginPath();
+        ctx.roundRect(-11, -12, 22, 13, 5);
+        ctx.fill();
+
+        // Boina negra ladeada a la izquierda (rasgo icónico de Joaquín)
+        ctx.fillStyle = '#19191D';
+        ctx.beginPath();
+        ctx.ellipse(-2.5, -11, 14.5, 6.5, -0.22, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#42424A';
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
+
+        ctx.restore();
+        return;
+    }
+
+    if (rider === 'ignacio') {
+        // Hombros: chaqueta amarilla con capucha estilo Funko Pop Ignacio
+        ctx.fillStyle = '#F5A623';
+        ctx.beginPath();
+        ctx.roundRect(-14, 3, 28, 9, 4);
+        ctx.fill();
+        ctx.fillStyle = '#D98200';
+        ctx.beginPath();
+        ctx.roundRect(-10, 1, 20, 6, 3);
+        ctx.fill();
+
+        // Orejas y cabeza cuadrada redondeada Funko Pop
+        ctx.fillStyle = '#E0B28B';
+        ctx.beginPath();
+        ctx.arc(-12, -3, 3, 0, Math.PI * 2);
+        ctx.arc(12, -3, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#F2C9A5';
+        ctx.beginPath();
+        ctx.roundRect(-11.5, -13, 23, 17, 6);
+        ctx.fill();
+
+        // Cabello corto oscuro posterior
+        ctx.fillStyle = '#2B211E';
+        ctx.beginPath();
+        ctx.roundRect(-11.5, -13, 23, 14, 5);
+        ctx.fill();
+
+        // Lentes de sol descansando en la parte superior de la cabeza
+        ctx.fillStyle = '#181818';
+        ctx.beginPath();
+        ctx.roundRect(-11, -16, 22, 4.5, 2);
+        ctx.fill();
+        ctx.fillStyle = '#546E7A';
+        ctx.fillRect(-9, -15, 7, 2.5);
+        ctx.fillRect(2, -15, 7, 2.5);
+
+        ctx.restore();
+        return;
+    }
+
+    // Rivales de F1 con casco integral clásico
     ctx.fillStyle = helmetColor;
     ctx.beginPath();
     ctx.arc(0, 0, 8.5, 0, Math.PI * 2);
