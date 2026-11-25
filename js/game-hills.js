@@ -66,6 +66,14 @@ class HillsGame {
         }
     }
 
+    getW() {
+        return this.canvas.logicalWidth || this.canvas.width;
+    }
+
+    getH() {
+        return this.canvas.logicalHeight || this.canvas.height;
+    }
+
     setLevel(lvl) {
         this.level = lvl;
         this.resetGame();
@@ -73,7 +81,8 @@ class HillsGame {
 
     // Curva del terreno suave y ondulada
     getGroundHeight(x) {
-        const baseH = this.canvas && this.canvas.height ? Math.max(340, this.canvas.height - 200) : 400;
+        const ch = this.canvas ? this.getH() : 0;
+        const baseH = ch ? Math.max(340, ch - 200) : 400;
         if (x < 150) return baseH; // Zona plana de inicio
         
         let h = baseH;
@@ -312,7 +321,7 @@ class HillsGame {
         }
 
         // Suave seguimiento de cámara
-        const targetCamX = b.x - this.canvas.width * 0.35;
+        const targetCamX = b.x - this.getW() * 0.35;
         this.cameraX += (targetCamX - this.cameraX) * 0.1;
     }
 
@@ -328,8 +337,9 @@ class HillsGame {
 
     draw() {
         const ctx = this.ctx;
-        const w = this.canvas.width;
-        const h = this.canvas.height;
+        const w = this.getW();
+        const h = this.getH();
+        if (!w || !h) return;
 
         ctx.clearRect(0, 0, w, h);
 
@@ -525,7 +535,7 @@ class HillsGame {
 
     drawScenery(ctx) {
         const startX = Math.max(0, this.cameraX - 100);
-        const endX = this.cameraX + this.canvas.width + 100;
+        const endX = this.cameraX + this.getW() + 100;
 
         for (let x = Math.floor(startX / 160) * 160; x <= endX; x += 160) {
             const y = this.getGroundHeight(x);
@@ -685,65 +695,75 @@ class HillsGame {
     }
 
     drawHUD(ctx, w) {
-        // Contador de Estrellas con caja redondeada
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.strokeStyle = '#FFCC00';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.roundRect(20, 16, 170, 52, 26);
-        ctx.fill();
-        ctx.stroke();
+        const isMobile = w < 640;
 
-        // Estrella dorada grande en el HUD
-        this.drawStar(ctx, 48, 42, 0);
-
-        ctx.fillStyle = '#333';
-        ctx.font = 'bold 26px "Comic Sans MS", cursive, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(`× ${this.starsCollected}`, 80, 51);
-
-        // Nivel Actual
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.strokeStyle = '#007AFF';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.roundRect(w - 180, 16, 160, 52, 26);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = '#007AFF';
-        ctx.font = 'bold 20px "Comic Sans MS", cursive, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`Nivel ${this.level} de ${this.maxLevel}`, w - 100, 49);
-
-        // Barra de progreso de la pista en el medio superior
-        const barW = Math.min(260, w * 0.35);
+        // Barra de progreso de la pista
+        const barW = isMobile ? Math.max(180, w - 56) : Math.min(280, w - 340);
         const barX = (w - barW) / 2;
-        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        const barY = isMobile ? 64 : 26;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
         ctx.beginPath();
-        ctx.roundRect(barX, 26, barW, 16, 8);
+        ctx.roundRect(barX, barY, barW, 16, 8);
         ctx.fill();
 
         const progress = Math.min(1, Math.max(0, this.bike.x / this.levelLength));
         ctx.fillStyle = '#34C759';
         ctx.beginPath();
-        ctx.roundRect(barX, 26, barW * progress, 16, 8);
+        ctx.roundRect(barX, barY, barW * progress, 16, 8);
         ctx.fill();
 
         // Mini motito en la barra de progreso
         ctx.font = '16px sans-serif';
-        ctx.fillText('🛵', barX + barW * progress, 38);
-        ctx.fillText('🏁', barX + barW + 12, 38);
+        ctx.fillText('🛵', barX + barW * progress, barY + 12);
+        ctx.fillText('🏁', barX + barW + 12, barY + 12);
+
+        // Contador de Estrellas (debajo de botón Menú para nunca taparse)
+        const pillY = isMobile ? 92 : 66;
+        const starW = isMobile ? 120 : 155;
+        const pillH = isMobile ? 42 : 48;
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.strokeStyle = '#FFCC00';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(14, pillY, starW, pillH, pillH / 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Estrella dorada grande en el HUD
+        this.drawStar(ctx, 38, pillY + pillH / 2, 0);
+
+        ctx.fillStyle = '#333';
+        ctx.font = isMobile ? 'bold 20px "Comic Sans MS", cursive, sans-serif' : 'bold 24px "Comic Sans MS", cursive, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`× ${this.starsCollected}`, 66, pillY + pillH / 2 + 7);
+
+        // Nivel Actual
+        const lvlW = isMobile ? 128 : 155;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.strokeStyle = '#007AFF';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(w - lvlW - 14, pillY, lvlW, pillH, pillH / 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#007AFF';
+        ctx.font = isMobile ? 'bold 16px "Comic Sans MS", cursive, sans-serif' : 'bold 19px "Comic Sans MS", cursive, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Nivel ${this.level} de ${this.maxLevel}`, w - lvlW / 2 - 14, pillY + pillH / 2 + 6);
     }
 
     drawWinBanner(ctx, w, h) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.fillRect(0, 0, w, h);
 
-        const bannerW = Math.min(520, w - 40);
+        const bannerW = Math.min(520, w - 32);
         const bannerH = 280;
         const bx = (w - bannerW) / 2;
         const by = (h - bannerH) / 2;
+        const maxTxtW = bannerW - 36;
 
         ctx.fillStyle = '#FFFFFF';
         ctx.strokeStyle = '#FFCC00';
@@ -754,17 +774,17 @@ class HillsGame {
         ctx.stroke();
 
         ctx.fillStyle = '#FF3B30';
-        ctx.font = 'bold 36px "Comic Sans MS", cursive, sans-serif';
+        ctx.font = 'bold 32px "Comic Sans MS", cursive, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('🎉 ¡GENIAL! ¡GANASTE! 🎉', w / 2, by + 65);
+        ctx.fillText('🎉 ¡GENIAL! ¡GANASTE! 🎉', w / 2, by + 65, maxTxtW);
 
         ctx.fillStyle = '#333';
-        ctx.font = 'bold 24px "Comic Sans MS", cursive, sans-serif';
-        ctx.fillText(`Juntaste ${this.starsCollected} estrellas ⭐`, w / 2, by + 120);
+        ctx.font = 'bold 22px "Comic Sans MS", cursive, sans-serif';
+        ctx.fillText(`Juntaste ${this.starsCollected} estrellas ⭐`, w / 2, by + 120, maxTxtW);
 
         // Botón Siguiente Nivel o Jugar de Nuevo
         const btnNextText = this.level < this.maxLevel ? '🚀 ¡Siguiente Nivel!' : '⭐ ¡Volver a Jugar!';
-        this.nextLevelBtnRect = { x: bx + 50, y: by + 160, w: bannerW - 100, h: 65 };
+        this.nextLevelBtnRect = { x: bx + 36, y: by + 160, w: bannerW - 72, h: 65 };
 
         ctx.fillStyle = '#34C759';
         ctx.beginPath();
@@ -775,8 +795,8 @@ class HillsGame {
         ctx.stroke();
 
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 24px "Comic Sans MS", cursive, sans-serif';
-        ctx.fillText(btnNextText, w / 2, by + 202);
+        ctx.font = 'bold 22px "Comic Sans MS", cursive, sans-serif';
+        ctx.fillText(btnNextText, w / 2, by + 202, this.nextLevelBtnRect.w - 20);
     }
 
     handleClick(x, y) {

@@ -36,13 +36,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let lanesGame = null;
     let lastTime = performance.now();
 
-    // 1. Ajuste Dinámico del Canvas
+    // 1. Ajuste Dinámico del Canvas (Con soporte Retina HD para iPhone/iPad)
     function resizeCanvas() {
         const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width || window.innerWidth;
-        canvas.height = rect.height || window.innerHeight;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const logicalW = rect.width || window.innerWidth;
+        const logicalH = rect.height || window.innerHeight;
+        canvas.logicalWidth = logicalW;
+        canvas.logicalHeight = logicalH;
+        canvas.dpr = dpr;
+        canvas.width = Math.round(logicalW * dpr);
+        canvas.height = Math.round(logicalH * dpr);
     }
     window.addEventListener('resize', resizeCanvas);
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', resizeCanvas);
+    }
     resizeCanvas();
 
     // Activar audio con el primer toque o click
@@ -57,7 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Cambio de Pantalla
     function showScreen(screen) {
         currentScreen = screen;
+        resizeCanvas();
         if (screen === 'menu') {
+            document.body.classList.add('on-menu');
+            document.body.classList.remove('in-game');
             menuScreen.style.display = 'flex';
             controlsHills.style.display = 'none';
             controlsLanes.style.display = 'none';
@@ -66,6 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.soundController.startBgMusic();
             }
         } else if (screen === 'hills') {
+            document.body.classList.remove('on-menu');
+            document.body.classList.add('in-game');
             menuScreen.style.display = 'none';
             controlsHills.style.display = 'flex';
             controlsLanes.style.display = 'none';
@@ -75,6 +89,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.soundController.startEngine();
             }
         } else if (screen === 'lanes') {
+            document.body.classList.remove('on-menu');
+            document.body.classList.add('in-game');
             menuScreen.style.display = 'none';
             controlsHills.style.display = 'none';
             controlsLanes.style.display = 'flex';
@@ -235,9 +251,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 9. Bucle Principal de Render y Actualización (60 FPS)
+    const ctx = canvas.getContext('2d');
     function gameLoop(timestamp) {
         const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
         lastTime = timestamp;
+
+        const dpr = canvas.dpr || 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         if (currentScreen === 'hills' && hillsGame) {
             hillsGame.update(dt);

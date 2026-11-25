@@ -85,6 +85,14 @@ class LanesGame {
         this.initRoad();
     }
 
+    getW() {
+        return this.canvas.logicalWidth || this.canvas.width;
+    }
+
+    getH() {
+        return this.canvas.logicalHeight || this.canvas.height;
+    }
+
     getCurrentTrack() {
         return this.tracks[this.currentTrackIndex];
     }
@@ -240,7 +248,7 @@ class LanesGame {
         this.overtakePopups.push({
             text: '⚡ ¡TURBO! ⚡',
             color: '#00E5FF',
-            y: this.canvas.height * 0.45,
+            y: this.getH() * 0.45,
             life: 45
         });
     }
@@ -254,7 +262,7 @@ class LanesGame {
         this.overtakePopups.push({
             text: '⚠️ ¡ACEITE! ⚠️',
             color: '#FF9500',
-            y: this.canvas.height * 0.45,
+            y: this.getH() * 0.45,
             life: 40
         });
     }
@@ -357,14 +365,14 @@ class LanesGame {
                 this.overtakePopups.push({
                     text: this.playerRank === 1 ? '🏆 ¡1º LUGAR! ¡LÍDER! 🏆' : `¡${this.playerRank}º LUGAR!`,
                     color: this.playerRank === 1 ? '#FFD700' : '#00E5FF',
-                    y: this.canvas.height * 0.35,
+                    y: this.getH() * 0.35,
                     life: 60
                 });
 
                 for (let p = 0; p < 18; p++) {
                     this.particles.push({
-                        x: (this.canvas.width / 2) + (Math.random() - 0.5) * 180,
-                        y: this.canvas.height * 0.65,
+                        x: (this.getW() / 2) + (Math.random() - 0.5) * 180,
+                        y: this.getH() * 0.65,
                         vx: (Math.random() - 0.5) * 8,
                         vy: (Math.random() - 0.5) * 8,
                         size: 5 + Math.random() * 5,
@@ -394,9 +402,10 @@ class LanesGame {
             if (window.soundController) {
                 window.soundController.playWin();
             }
+            const cw = this.getW();
             for (let i = 0; i < 90; i++) {
                 this.confetti.push({
-                    x: (this.canvas.width * 0.1) + Math.random() * (this.canvas.width * 0.8),
+                    x: (cw * 0.1) + Math.random() * (cw * 0.8),
                     y: -Math.random() * 200,
                     vx: (Math.random() - 0.5) * 5,
                     vy: 2 + Math.random() * 4,
@@ -424,14 +433,15 @@ class LanesGame {
         }
     }
 
-    // PROYECCIÓN 3D SEGURA Y CALIBRADA
+    // PROYECCIÓN 3D SEGURA Y CALIBRADA (Adaptada a Desktop y iPhone Portrait)
     project(worldX, worldY, worldZ, cameraX, cameraY, cameraZ, horizonY, w, h) {
         const dz = worldZ - cameraZ;
         if (dz <= 40) return null;
 
         const scale = 300.0 / dz;
         const roadH = h - horizonY;
-        const widthFactor = Math.min(w, 850) / 1000.0;
+        // En pantallas angostas (iPhone vertical), reducir widthFactor para ver pianos y paisaje
+        const widthFactor = w < 600 ? (w * 0.68) / 1000.0 : Math.min(w, 850) / 1000.0;
 
         const screenY = horizonY + (cameraY - worldY) * scale * (roadH / 1000.0);
         const screenX = (w / 2) + (worldX - cameraX) * scale * widthFactor;
@@ -442,8 +452,8 @@ class LanesGame {
 
     draw() {
         const ctx = this.ctx;
-        const w = this.canvas.width;
-        const h = this.canvas.height;
+        const w = this.getW();
+        const h = this.getH();
         if (!w || !h) return;
 
         const track = this.getCurrentTrack();
@@ -886,7 +896,9 @@ class LanesGame {
 
         const proj = this.project(playerWorldX, this.getRoadHill(this.playerZ), this.playerZ, camOffsetX, cameraY, cameraZ, horizonY, w, h);
         const carX = proj ? proj.x : w / 2;
-        const carY = h - 105;
+        const isMobile = w < 640;
+        const carY = isMobile ? h - 135 : h - 105;
+        const carScale = isMobile ? Math.max(0.85, Math.min(1.15, w / 400)) : 1.35;
 
         const hasTurbo = this.turboTimer > 0;
         const isSkidding = this.skidTimer > 0;
@@ -895,7 +907,7 @@ class LanesGame {
             ctx,
             carX,
             carY,
-            1.35,
+            carScale,
             GAME_CONFIG.selectedColor,
             1,
             GAME_CONFIG.selectedRider,
@@ -957,44 +969,28 @@ class LanesGame {
 
     drawHUD(ctx, w, h) {
         const track = this.getCurrentTrack();
-
-        // 1. PLACA DE POSICIÓN
+        const isMobile = w < 640;
         const isPodium = this.playerRank <= 3;
-        ctx.fillStyle = 'rgba(20, 20, 20, 0.85)';
-        ctx.strokeStyle = this.playerRank === 1 ? '#FFD700' : (isPodium ? '#00E5FF' : '#FF9500');
-        ctx.lineWidth = 3.5;
-        ctx.beginPath();
-        ctx.roundRect(16, 16, 160, 54, 27);
-        ctx.fill();
-        ctx.stroke();
 
-        ctx.font = '28px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(this.playerRank === 1 ? '🏆' : (isPodium ? '🥇' : '🏎️'), 26, 52);
-
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 22px "Comic Sans MS", cursive, sans-serif';
-        ctx.fillText(`${this.playerRank}º Lugar`, 68, 52);
-
-        // 2. BARRA DE PROGRESO
-        const barW = Math.min(380, w * 0.46);
+        // BARRA DE PROGRESO (En móvil va debajo de los botones HTML del top bar; en desktop va centrada arriba)
+        const barW = isMobile ? Math.max(180, w - 56) : Math.min(380, w - 340);
         const barX = (w - barW) / 2;
-        const barY = 22;
-        const barH = 22;
+        const barY = isMobile ? 74 : 26;
+        const barH = isMobile ? 18 : 22;
 
         ctx.fillStyle = '#FFFFFF';
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 4;
-        ctx.font = 'bold 16px "Comic Sans MS", cursive, sans-serif';
+        ctx.font = isMobile ? 'bold 14px "Comic Sans MS", cursive, sans-serif' : 'bold 16px "Comic Sans MS", cursive, sans-serif';
         ctx.textAlign = 'center';
-        ctx.strokeText(`🇨🇱 Pista ${this.currentTrackIndex + 1}: ${track.name}`, w / 2, barY - 6);
-        ctx.fillText(`🇨🇱 Pista ${this.currentTrackIndex + 1}: ${track.name}`, w / 2, barY - 6);
+        ctx.strokeText(`🇨🇱 Pista ${this.currentTrackIndex + 1}: ${track.name}`, w / 2, barY - 6, w - 30);
+        ctx.fillText(`🇨🇱 Pista ${this.currentTrackIndex + 1}: ${track.name}`, w / 2, barY - 6, w - 30);
 
         ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.roundRect(barX, barY, barW, barH, 11);
+        ctx.roundRect(barX, barY, barW, barH, barH / 2);
         ctx.fill();
         ctx.stroke();
 
@@ -1007,52 +1003,76 @@ class LanesGame {
 
             ctx.fillStyle = progGrad;
             ctx.beginPath();
-            ctx.roundRect(barX + 2, barY + 2, (barW - 4) * progress, barH - 4, 9);
+            ctx.roundRect(barX + 2, barY + 2, (barW - 4) * progress, barH - 4, (barH - 4) / 2);
             ctx.fill();
         }
 
         const carProgressX = barX + (barW - 22) * progress;
-        ctx.font = '18px sans-serif';
-        ctx.fillText('🏎️', carProgressX, barY + 17);
-        ctx.fillText('🏁', barX + barW + 12, barY + 17);
+        ctx.font = isMobile ? '15px sans-serif' : '18px sans-serif';
+        ctx.fillText('🏎️', carProgressX, barY + barH - 3);
+        ctx.fillText('🏁', barX + barW + 12, barY + barH - 3);
 
-        // 3. VELOCÍMETRO
+        // PLACA DE POSICIÓN (Debajo de barra en móvil, o debajo del botón Menú en desktop)
+        const pillY = isMobile ? 102 : 66;
+        const rankW = isMobile ? 128 : 156;
+        const pillH = isMobile ? 40 : 48;
+
+        ctx.fillStyle = 'rgba(20, 20, 20, 0.85)';
+        ctx.strokeStyle = this.playerRank === 1 ? '#FFD700' : (isPodium ? '#00E5FF' : '#FF9500');
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(14, pillY, rankW, pillH, pillH / 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = isMobile ? '20px sans-serif' : '26px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(this.playerRank === 1 ? '🏆' : (isPodium ? '🥇' : '🏎️'), 22, pillY + pillH - 12);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = isMobile ? 'bold 17px "Comic Sans MS", cursive, sans-serif' : 'bold 21px "Comic Sans MS", cursive, sans-serif';
+        ctx.fillText(`${this.playerRank}º Lugar`, isMobile ? 52 : 62, pillY + pillH - 13);
+
+        // VELOCÍMETRO
+        const speedW = isMobile ? 114 : 134;
+        const speedX = w - speedW - 14;
         const speedKmh = Math.floor(this.speed);
         ctx.fillStyle = 'rgba(20, 20, 20, 0.85)';
         ctx.strokeStyle = this.turboTimer > 0 ? '#00E5FF' : (this.skidTimer > 0 ? '#FF9500' : '#FFFFFF');
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.roundRect(w - 150, 16, 134, 54, 27);
+        ctx.roundRect(speedX, pillY, speedW, pillH, pillH / 2);
         ctx.fill();
         ctx.stroke();
 
         ctx.fillStyle = this.turboTimer > 0 ? '#00E5FF' : '#FFFFFF';
-        ctx.font = 'bold 24px "Arial Rounded MT Bold", sans-serif';
+        ctx.font = isMobile ? 'bold 19px "Arial Rounded MT Bold", sans-serif' : 'bold 23px "Arial Rounded MT Bold", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${speedKmh}`, w - 100, 48);
+        ctx.fillText(`${speedKmh}`, speedX + speedW * 0.36, pillY + pillH - 13);
 
         ctx.fillStyle = '#FFD700';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.fillText('KM/H', w - 42, 48);
+        ctx.font = isMobile ? 'bold 10px sans-serif' : 'bold 11px sans-serif';
+        ctx.fillText('KM/H', speedX + speedW * 0.74, pillY + pillH - 14);
     }
 
     drawPodiumScreen(ctx, w, h) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
         ctx.fillRect(0, 0, w, h);
 
-        const bannerW = Math.min(540, w - 30);
-        const bannerH = 370;
+        const bannerW = Math.min(540, w - 28);
+        const bannerH = Math.min(370, h - 40);
         const bx = (w - bannerW) / 2;
         const by = (h - bannerH) / 2;
+        const maxTxtW = bannerW - 36;
 
         const track = this.getCurrentTrack();
         const reachedPodium = this.playerRank <= 3;
 
         ctx.fillStyle = '#FFFFFF';
         ctx.strokeStyle = reachedPodium ? '#FFD700' : '#FF9500';
-        ctx.lineWidth = 8;
+        ctx.lineWidth = 7;
         ctx.beginPath();
-        ctx.roundRect(bx, by, bannerW, bannerH, 28);
+        ctx.roundRect(bx, by, bannerW, bannerH, 26);
         ctx.fill();
         ctx.stroke();
 
@@ -1060,49 +1080,49 @@ class LanesGame {
 
         if (reachedPodium) {
             const medal = this.playerRank === 1 ? '🏆' : (this.playerRank === 2 ? '🥈' : '🥉');
-            ctx.font = '54px sans-serif';
-            ctx.fillText(medal, w / 2, by + 70);
+            ctx.font = '48px sans-serif';
+            ctx.fillText(medal, w / 2, by + 64);
 
             ctx.fillStyle = '#D52B1E';
-            ctx.font = 'bold 28px "Comic Sans MS", cursive, sans-serif';
-            ctx.fillText(this.playerRank === 1 ? '¡1º LUGAR! ¡CAMPEÓN!' : '🇨🇱 ¡PODIO EN CHILE! 🇨🇱', w / 2, by + 115);
+            ctx.font = 'bold 25px "Comic Sans MS", cursive, sans-serif';
+            ctx.fillText(this.playerRank === 1 ? '¡1º LUGAR! ¡CAMPEÓN!' : '🇨🇱 ¡PODIO EN CHILE! 🇨🇱', w / 2, by + 106, maxTxtW);
 
             ctx.fillStyle = '#222';
-            ctx.font = 'bold 21px "Comic Sans MS", cursive, sans-serif';
-            ctx.fillText(`¡Terminaste en ${this.playerRank}º Lugar en ${track.name}!`, w / 2, by + 150);
+            ctx.font = 'bold 19px "Comic Sans MS", cursive, sans-serif';
+            ctx.fillText(`¡Terminaste en ${this.playerRank}º Lugar en ${track.name}!`, w / 2, by + 140, maxTxtW);
 
-            this.drawPodiumSteps(ctx, w / 2, by + 235);
+            this.drawPodiumSteps(ctx, w / 2, by + 225);
 
             const isLastTrack = this.currentTrackIndex >= this.tracks.length - 1;
-            const btnText = isLastTrack ? '🇨🇱 ¡Gran Campeón de Chile! Jugar de Nuevo 🏆' : '🚀 ¡Avanzar a Siguiente Pista Chilena! 🇨🇱';
+            const btnText = isLastTrack ? '🇨🇱 ¡Campeón! Jugar de Nuevo 🏆' : '🚀 ¡Siguiente Pista Chilena! 🇨🇱';
 
-            this.actionBtn = { x: bx + 40, y: by + 285, w: bannerW - 80, h: 62, action: isLastTrack ? 'restart' : 'next' };
+            this.actionBtn = { x: bx + 24, y: by + bannerH - 80, w: bannerW - 48, h: 58, action: isLastTrack ? 'restart' : 'next' };
 
             ctx.fillStyle = '#00E676';
             ctx.beginPath();
-            ctx.roundRect(this.actionBtn.x, this.actionBtn.y, this.actionBtn.w, this.actionBtn.h, 30);
+            ctx.roundRect(this.actionBtn.x, this.actionBtn.y, this.actionBtn.w, this.actionBtn.h, 29);
             ctx.fill();
             ctx.strokeStyle = '#00C853';
             ctx.lineWidth = 4;
             ctx.stroke();
 
             ctx.fillStyle = '#004D40';
-            ctx.font = 'bold 20px "Comic Sans MS", cursive, sans-serif';
-            ctx.fillText(btnText, w / 2, by + 324);
+            ctx.font = 'bold 19px "Comic Sans MS", cursive, sans-serif';
+            ctx.fillText(btnText, w / 2, this.actionBtn.y + 36, this.actionBtn.w - 24);
         } else {
-            ctx.font = '54px sans-serif';
-            ctx.fillText('🏎️', w / 2, by + 70);
+            ctx.font = '48px sans-serif';
+            ctx.fillText('🏎️', w / 2, by + 66);
 
             ctx.fillStyle = '#FF9500';
-            ctx.font = 'bold 26px "Comic Sans MS", cursive, sans-serif';
-            ctx.fillText('¡CASI LLEGAS AL PODIO!', w / 2, by + 120);
+            ctx.font = 'bold 24px "Comic Sans MS", cursive, sans-serif';
+            ctx.fillText('¡CASI LLEGAS AL PODIO!', w / 2, by + 114, maxTxtW);
 
             ctx.fillStyle = '#444';
-            ctx.font = 'bold 18px "Comic Sans MS", cursive, sans-serif';
-            ctx.fillText(`Terminaste en ${this.playerRank}º Lugar.`, w / 2, by + 160);
-            ctx.fillText('¡Necesitas llegar 1º, 2º o 3º para clasificar a la siguiente pista!', w / 2, by + 190);
+            ctx.font = 'bold 17px "Comic Sans MS", cursive, sans-serif';
+            ctx.fillText(`Terminaste en ${this.playerRank}º Lugar.`, w / 2, by + 154, maxTxtW);
+            ctx.fillText('¡Llega 1º, 2º o 3º para avanzar de pista!', w / 2, by + 184, maxTxtW);
 
-            this.actionBtn = { x: bx + 50, y: by + 250, w: bannerW - 100, h: 65, action: 'retry' };
+            this.actionBtn = { x: bx + 30, y: by + bannerH - 84, w: bannerW - 60, h: 60, action: 'retry' };
 
             ctx.fillStyle = '#007AFF';
             ctx.beginPath();
@@ -1113,8 +1133,8 @@ class LanesGame {
             ctx.stroke();
 
             ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 22px "Comic Sans MS", cursive, sans-serif';
-            ctx.fillText('🔄 ¡Intentar de Nuevo!', w / 2, by + 291);
+            ctx.font = 'bold 20px "Comic Sans MS", cursive, sans-serif';
+            ctx.fillText('🔄 ¡Intentar de Nuevo!', w / 2, this.actionBtn.y + 37, this.actionBtn.w - 24);
         }
     }
 
