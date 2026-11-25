@@ -670,7 +670,7 @@ class HillsGame {
         ctx.stroke();
 
         ctx.fillStyle = '#222';
-        ctx.font = 'bold 18px "Comic Sans MS", cursive, sans-serif';
+        ctx.font = 'italic 900 18px "Exo 2", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('¡META! 🏁', x, y - 156);
 
@@ -735,7 +735,7 @@ class HillsGame {
         this.drawStar(ctx, 38, pillY + pillH / 2, 0);
 
         ctx.fillStyle = '#333';
-        ctx.font = isMobile ? 'bold 20px "Comic Sans MS", cursive, sans-serif' : 'bold 24px "Comic Sans MS", cursive, sans-serif';
+        ctx.font = isMobile ? '900 19px "Orbitron", sans-serif' : '900 22px "Orbitron", sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText(`× ${this.starsCollected}`, 66, pillY + pillH / 2 + 7);
 
@@ -750,9 +750,9 @@ class HillsGame {
         ctx.stroke();
 
         ctx.fillStyle = '#007AFF';
-        ctx.font = isMobile ? 'bold 16px "Comic Sans MS", cursive, sans-serif' : 'bold 19px "Comic Sans MS", cursive, sans-serif';
+        ctx.font = isMobile ? 'italic 900 15px "Exo 2", sans-serif' : 'italic 900 18px "Exo 2", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`Nivel ${this.level} de ${this.maxLevel}`, w - lvlW / 2 - 14, pillY + pillH / 2 + 6);
+        ctx.fillText(`NIVEL ${this.level} / ${this.maxLevel}`, w - lvlW / 2 - 14, pillY + pillH / 2 + 6);
     }
 
     drawWinBanner(ctx, w, h) {
@@ -773,17 +773,17 @@ class HillsGame {
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = '#FF3B30';
-        ctx.font = 'bold 32px "Comic Sans MS", cursive, sans-serif';
+        ctx.fillStyle = '#E10600';
+        ctx.font = 'italic 900 30px "Exo 2", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('🎉 ¡GENIAL! ¡GANASTE! 🎉', w / 2, by + 65, maxTxtW);
 
         ctx.fillStyle = '#333';
-        ctx.font = 'bold 22px "Comic Sans MS", cursive, sans-serif';
+        ctx.font = '700 21px "Titillium Web", sans-serif';
         ctx.fillText(`Juntaste ${this.starsCollected} estrellas ⭐`, w / 2, by + 120, maxTxtW);
 
         // Botón Siguiente Nivel o Jugar de Nuevo
-        const btnNextText = this.level < this.maxLevel ? '🚀 ¡Siguiente Nivel!' : '⭐ ¡Volver a Jugar!';
+        const btnNextText = this.level < this.maxLevel ? '🚀 ¡SIGUIENTE NIVEL!' : '⭐ ¡VOLVER A JUGAR!';
         this.nextLevelBtnRect = { x: bx + 36, y: by + 160, w: bannerW - 72, h: 65 };
 
         ctx.fillStyle = '#34C759';
@@ -795,7 +795,7 @@ class HillsGame {
         ctx.stroke();
 
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 22px "Comic Sans MS", cursive, sans-serif';
+        ctx.font = 'italic 900 21px "Exo 2", sans-serif';
         ctx.fillText(btnNextText, w / 2, by + 202, this.nextLevelBtnRect.w - 20);
     }
 

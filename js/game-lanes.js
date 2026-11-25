@@ -642,7 +642,7 @@ class LanesGame {
 
         this.overtakePopups.forEach((pop) => {
             ctx.save();
-            ctx.font = 'bold 34px "Comic Sans MS", cursive, sans-serif';
+            ctx.font = 'italic 900 34px "Exo 2", sans-serif';
             ctx.textAlign = 'center';
             ctx.fillStyle = pop.color;
             ctx.strokeStyle = '#000000';
@@ -981,10 +981,10 @@ class LanesGame {
         ctx.fillStyle = '#FFFFFF';
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 4;
-        ctx.font = isMobile ? 'bold 14px "Comic Sans MS", cursive, sans-serif' : 'bold 16px "Comic Sans MS", cursive, sans-serif';
+        ctx.font = isMobile ? 'italic 900 14px "Exo 2", sans-serif' : 'italic 900 16px "Exo 2", sans-serif';
         ctx.textAlign = 'center';
-        ctx.strokeText(`🇨🇱 Pista ${this.currentTrackIndex + 1}: ${track.name}`, w / 2, barY - 6, w - 30);
-        ctx.fillText(`🇨🇱 Pista ${this.currentTrackIndex + 1}: ${track.name}`, w / 2, barY - 6, w - 30);
+        ctx.strokeText(`🇨🇱 PISTA ${this.currentTrackIndex + 1}: ${track.name.toUpperCase()}`, w / 2, barY - 6, w - 30);
+        ctx.fillText(`🇨🇱 PISTA ${this.currentTrackIndex + 1}: ${track.name.toUpperCase()}`, w / 2, barY - 6, w - 30);
 
         ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
         ctx.strokeStyle = '#FFFFFF';
@@ -1014,7 +1014,7 @@ class LanesGame {
 
         // PLACA DE POSICIÓN (Debajo de barra en móvil, o debajo del botón Menú en desktop)
         const pillY = isMobile ? 102 : 70;
-        const rankW = isMobile ? 128 : 156;
+        const rankW = isMobile ? 132 : 162;
         const pillH = isMobile ? 40 : 48;
 
         ctx.fillStyle = 'rgba(20, 20, 20, 0.85)';
@@ -1030,11 +1030,11 @@ class LanesGame {
         ctx.fillText(this.playerRank === 1 ? '🏆' : (isPodium ? '🥇' : '🏎️'), 22, pillY + pillH - 12);
 
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = isMobile ? 'bold 17px "Comic Sans MS", cursive, sans-serif' : 'bold 21px "Comic Sans MS", cursive, sans-serif';
-        ctx.fillText(`${this.playerRank}º Lugar`, isMobile ? 52 : 62, pillY + pillH - 13);
+        ctx.font = isMobile ? 'italic 900 16px "Exo 2", sans-serif' : 'italic 900 19px "Exo 2", sans-serif';
+        ctx.fillText(`${this.playerRank}º LUGAR`, isMobile ? 50 : 60, pillY + pillH - 14);
 
-        // VELOCÍMETRO
-        const speedW = isMobile ? 114 : 134;
+        // VELOCÍMETRO F1 TELEMETRÍA
+        const speedW = isMobile ? 118 : 140;
         const speedX = w - speedW - 14;
         const speedKmh = Math.floor(this.speed);
         ctx.fillStyle = 'rgba(20, 20, 20, 0.85)';
@@ -1046,13 +1046,13 @@ class LanesGame {
         ctx.stroke();
 
         ctx.fillStyle = this.turboTimer > 0 ? '#00E5FF' : '#FFFFFF';
-        ctx.font = isMobile ? 'bold 19px "Arial Rounded MT Bold", sans-serif' : 'bold 23px "Arial Rounded MT Bold", sans-serif';
+        ctx.font = isMobile ? '900 18px "Orbitron", sans-serif' : '900 22px "Orbitron", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${speedKmh}`, speedX + speedW * 0.36, pillY + pillH - 13);
+        ctx.fillText(`${speedKmh}`, speedX + speedW * 0.36, pillY + pillH - 14);
 
         ctx.fillStyle = '#FFD700';
-        ctx.font = isMobile ? 'bold 10px sans-serif' : 'bold 11px sans-serif';
-        ctx.fillText('KM/H', speedX + speedW * 0.74, pillY + pillH - 14);
+        ctx.font = isMobile ? '700 10px "Titillium Web", sans-serif' : '700 11px "Titillium Web", sans-serif';
+        ctx.fillText('KM/H', speedX + speedW * 0.76, pillY + pillH - 15);
     }
 
     drawPodiumScreen(ctx, w, h) {
@@ -1083,18 +1083,18 @@ class LanesGame {
             ctx.font = '48px sans-serif';
             ctx.fillText(medal, w / 2, by + 64);
 
-            ctx.fillStyle = '#D52B1E';
-            ctx.font = 'bold 25px "Comic Sans MS", cursive, sans-serif';
+            ctx.fillStyle = '#E10600';
+            ctx.font = 'italic 900 25px "Exo 2", sans-serif';
             ctx.fillText(this.playerRank === 1 ? '¡1º LUGAR! ¡CAMPEÓN!' : '🇨🇱 ¡PODIO EN CHILE! 🇨🇱', w / 2, by + 106, maxTxtW);
 
             ctx.fillStyle = '#222';
-            ctx.font = 'bold 19px "Comic Sans MS", cursive, sans-serif';
+            ctx.font = '700 18px "Titillium Web", sans-serif';
             ctx.fillText(`¡Terminaste en ${this.playerRank}º Lugar en ${track.name}!`, w / 2, by + 140, maxTxtW);
 
             this.drawPodiumSteps(ctx, w / 2, by + 225);
 
             const isLastTrack = this.currentTrackIndex >= this.tracks.length - 1;
-            const btnText = isLastTrack ? '🇨🇱 ¡Campeón! Jugar de Nuevo 🏆' : '🚀 ¡Siguiente Pista Chilena! 🇨🇱';
+            const btnText = isLastTrack ? '🇨🇱 ¡CAMPEÓN! JUGAR DE NUEVO 🏆' : '🚀 ¡SIGUIENTE PISTA CHILENA! 🇨🇱';
 
             this.actionBtn = { x: bx + 24, y: by + bannerH - 80, w: bannerW - 48, h: 58, action: isLastTrack ? 'restart' : 'next' };
 
@@ -1107,18 +1107,18 @@ class LanesGame {
             ctx.stroke();
 
             ctx.fillStyle = '#004D40';
-            ctx.font = 'bold 19px "Comic Sans MS", cursive, sans-serif';
+            ctx.font = 'italic 900 18px "Exo 2", sans-serif';
             ctx.fillText(btnText, w / 2, this.actionBtn.y + 36, this.actionBtn.w - 24);
         } else {
             ctx.font = '48px sans-serif';
             ctx.fillText('🏎️', w / 2, by + 66);
 
             ctx.fillStyle = '#FF9500';
-            ctx.font = 'bold 24px "Comic Sans MS", cursive, sans-serif';
+            ctx.font = 'italic 900 24px "Exo 2", sans-serif';
             ctx.fillText('¡CASI LLEGAS AL PODIO!', w / 2, by + 114, maxTxtW);
 
             ctx.fillStyle = '#444';
-            ctx.font = 'bold 17px "Comic Sans MS", cursive, sans-serif';
+            ctx.font = '700 17px "Titillium Web", sans-serif';
             ctx.fillText(`Terminaste en ${this.playerRank}º Lugar.`, w / 2, by + 154, maxTxtW);
             ctx.fillText('¡Llega 1º, 2º o 3º para avanzar de pista!', w / 2, by + 184, maxTxtW);
 
@@ -1133,8 +1133,8 @@ class LanesGame {
             ctx.stroke();
 
             ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 20px "Comic Sans MS", cursive, sans-serif';
-            ctx.fillText('🔄 ¡Intentar de Nuevo!', w / 2, this.actionBtn.y + 37, this.actionBtn.w - 24);
+            ctx.font = 'italic 900 20px "Exo 2", sans-serif';
+            ctx.fillText('🔄 ¡INTENTAR DE NUEVO!', w / 2, this.actionBtn.y + 37, this.actionBtn.w - 24);
         }
     }
 
@@ -1143,7 +1143,7 @@ class LanesGame {
         ctx.fillStyle = '#B0BEC5';
         ctx.fillRect(cx - 100, cy - 35, 60, 45);
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 18px sans-serif';
+        ctx.font = '900 17px "Orbitron", sans-serif';
         ctx.fillText('2º', cx - 70, cy - 8);
 
         ctx.fillStyle = '#FFD700';

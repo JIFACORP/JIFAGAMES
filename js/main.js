@@ -1,6 +1,13 @@
 // js/main.js - Coordinador Principal de la Aplicación y Juegos
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Precargar fuentes de Fórmula 1 para el Canvas
+    if (document.fonts && document.fonts.load) {
+        document.fonts.load('900 24px "Orbitron"').catch(() => {});
+        document.fonts.load('italic 900 24px "Exo 2"').catch(() => {});
+        document.fonts.load('700 20px "Titillium Web"').catch(() => {});
+    }
+
     const canvas = document.getElementById('game-canvas');
     const menuScreen = document.getElementById('menu-screen');
     const controlsHills = document.getElementById('controls-hills');

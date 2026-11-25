@@ -416,7 +416,7 @@ function drawCartoonF1Car(ctx, x, y, carColor, number = 1, rider = 'perrito', ti
     ctx.stroke();
 
     ctx.fillStyle = '#111111';
-    ctx.font = 'bold 9px "Arial Rounded MT Bold", sans-serif';
+    ctx.font = '900 9px "Orbitron", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(`${number}`, 0, -21.5);
@@ -736,7 +736,7 @@ function drawF1CarRearView(ctx, x, y, scale = 1, carColor = '#FF3B30', number = 
     ctx.arc(0, -20.5, 6, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#111111';
-    ctx.font = 'bold 8px "Arial Rounded MT Bold", sans-serif';
+    ctx.font = '900 8px "Orbitron", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(`${number}`, 0, -20.5);

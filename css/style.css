@@ -10,7 +10,7 @@
 }
 
 body {
-    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Arial Rounded MT Bold', sans-serif;
+    font-family: 'Titillium Web', -apple-system, BlinkMacSystemFont, sans-serif;
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     min-height: 100vh;
     min-height: 100dvh;
@@ -68,12 +68,13 @@ body.in-game #btn-qr {
 
 .top-btn {
     pointer-events: auto;
+    font-family: 'Titillium Web', sans-serif;
     background: #ffffff;
     border: 3px solid #ffcc00;
     border-radius: 50px;
     padding: 8px 18px;
-    font-size: 1.2rem;
-    font-weight: bold;
+    font-size: 1.15rem;
+    font-weight: 700;
     cursor: pointer;
     box-shadow: 0 4px 10px rgba(0,0,0,0.15);
     display: flex;
@@ -106,10 +107,14 @@ body.in-game #btn-qr {
 }
 
 .title-container h1 {
-    font-size: 2.8rem;
+    font-family: 'Exo 2', sans-serif;
+    font-style: italic;
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: 2.7rem;
     color: #ffffff;
-    text-shadow: 3px 3px 0 #ff5722, 6px 6px 0 rgba(0,0,0,0.2);
-    letter-spacing: 1px;
+    text-shadow: 3px 3px 0 #e10600, 6px 6px 0 rgba(0,0,0,0.25);
+    letter-spacing: 1.5px;
     animation: bounce 2s infinite alternate ease-in-out;
 }
 
@@ -166,22 +171,31 @@ body.in-game #btn-qr {
 }
 
 .game-card h2 {
-    font-size: 1.6rem;
-    color: #ff3b30;
+    font-family: 'Exo 2', sans-serif;
+    font-style: italic;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-size: 1.55rem;
+    color: #e10600;
     margin-bottom: 8px;
 }
 
 .game-card p {
     font-size: 1.05rem;
-    color: #555;
+    font-weight: 600;
+    color: #444;
     margin-bottom: 14px;
 }
 
 .play-badge {
+    font-family: 'Exo 2', sans-serif;
+    font-style: italic;
+    font-weight: 900;
+    letter-spacing: 1px;
     background: #34c759;
     color: white;
-    font-size: 1.3rem;
-    font-weight: bold;
+    font-size: 1.25rem;
     padding: 10px 24px;
     border-radius: 30px;
     box-shadow: 0 4px 10px rgba(52, 199, 89, 0.4);
