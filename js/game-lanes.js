@@ -149,6 +149,7 @@ class LanesGame {
 
         this.playerRank = 6;    // Empieza en 6º lugar
         this.currentLap = 1;    // Vuelta actual (1 a 3)
+        this.skyOffset = 0;     // Desplazamiento horizontal suave del horizonte al doblar
         this.won = false;
         this.startCountdown = 110; // ~1.8 segundos de semáforo de largada
 
@@ -326,7 +327,7 @@ class LanesGame {
             let da = ((a2 - a1 + Math.PI) % (Math.PI * 2));
             if (da < 0) da += Math.PI * 2;
             da -= Math.PI;
-            rawCurvs.push(Math.max(-8.5, Math.min(8.5, da * 38 * curveAmp)));
+            rawCurvs.push(Math.max(-11.5, Math.min(11.5, da * 56 * curveAmp)));
         }
         const curves = rawCurvs.map((_, i) => {
             let sum = 0;
@@ -335,6 +336,17 @@ class LanesGame {
         });
 
         return { points: normPts, curves, length: N };
+    }
+
+    getSegmentCurveInterpolated(segFloat) {
+        const circuit = this.getCurrentTrack().circuit;
+        if (!circuit || !circuit.curves) return this.getSegmentCurve(segFloat);
+        const N = circuit.length;
+        const idx = ((segFloat % N) + N) % N;
+        const i0 = Math.floor(idx) % N;
+        const i1 = (i0 + 1) % N;
+        const t = idx - Math.floor(idx);
+        return circuit.curves[i0] + (circuit.curves[i1] - circuit.curves[i0]) * t;
     }
 
     getCircuitPoint(track, z) {
@@ -469,8 +481,13 @@ class LanesGame {
         const prevCarZ = prevPlayerZ + vm.carZOffset;
         const currCarZ = this.playerZ + vm.carZOffset;
 
-        // Volante rápido y suave para velocidad de F1
-        const steerSpeed = 0.042 * (this.turboTimer > 0 ? 1.15 : 1) * dtFactor;
+        // Volante rápido y suave para velocidad de F1 + efecto centrífugo natural en curvas
+        const curCurve = this.getSegmentCurveInterpolated(currCarZ / this.segmentLength);
+        const speedRatio = Math.min(1.35, this.speed / 245);
+        this.playerX -= curCurve * 0.0020 * speedRatio * dtFactor;
+        this.skyOffset = (this.skyOffset || 0) + curCurve * (unitsMoved / this.segmentLength) * 14;
+
+        const steerSpeed = 0.044 * (this.turboTimer > 0 ? 1.15 : 1) * dtFactor;
         if (this.steerInput !== 0) {
             this.playerX += this.steerInput * steerSpeed;
             this.tilt += (this.steerInput - this.tilt) * 0.22 * dtFactor;
@@ -503,7 +520,7 @@ class LanesGame {
 
         // 4. ACTUALIZAR AUTOS RIVALES Y ADELANTAMIENTOS
         const weaveAmp = this.getCurrentTrack().weaveAmp || 0.004;
-        const rivalHalfW = 42 * 0.92 * vm.objScaleFactor * vm.scaleCar;
+        const rivalHalfW = 42 * 0.98 * vm.rivalScaleFactor * vm.scaleCar;
         const rivalHitThreshold = (carHalfW + rivalHalfW) / Math.max(40, vm.rwCar);
 
         this.rivals.forEach((rival) => {
@@ -618,10 +635,11 @@ class LanesGame {
         const isMobile = safeW < 640;
         const horizonY = safeH * 0.40;
         const roadH = Math.max(100, safeH - horizonY);
-        const widthFactor = safeW < 600 ? (safeW * 0.78) / 1000.0 : Math.min(safeW, 950) / 1000.0;
+        const widthFactor = safeW < 600 ? (safeW * 0.84) / 1000.0 : Math.min(safeW, 950) / 1000.0;
         const carY = safeH < 480 ? safeH - 82 : (isMobile ? safeH - 125 : safeH - 105);
-        const carScale = isMobile ? Math.max(0.58, Math.min(0.84, (safeW * 0.78) / 480)) : 1.05;
-        const objScaleFactor = Math.max(0.54, Math.min(1.0, widthFactor / 0.95));
+        const carScale = isMobile ? Math.max(0.72, Math.min(0.88, (safeW * 0.84) / 450)) : 1.05;
+        const objScaleFactor = Math.max(0.64, Math.min(1.0, widthFactor / 0.86));
+        const rivalScaleFactor = Math.max(0.78, carScale / 1.05);
 
         const dzCar = (255.0 * roadH) / Math.max(40, carY - horizonY);
         const carZOffset = dzCar - 280.0;
@@ -636,6 +654,7 @@ class LanesGame {
             carY,
             carScale,
             objScaleFactor,
+            rivalScaleFactor,
             dzCar,
             carZOffset,
             scaleCar,
@@ -651,7 +670,7 @@ class LanesGame {
         const scale = 300.0 / dz;
         const roadH = h - horizonY;
         // Pista ancha y proporcional tanto en iPhone como en Desktop
-        const widthFactor = w < 600 ? (w * 0.78) / 1000.0 : Math.min(w, 950) / 1000.0;
+        const widthFactor = w < 600 ? (w * 0.84) / 1000.0 : Math.min(w, 950) / 1000.0;
 
         const screenY = horizonY + (cameraY - worldY) * scale * (roadH / 1000.0);
         const screenX = (w / 2) + (worldX - cameraX) * scale * widthFactor;
@@ -689,7 +708,7 @@ class LanesGame {
         const projectedSegments = [];
         const firstAheadSeg = Math.floor(this.playerZ / this.segmentLength) + 1;
         const playerPercent = (this.playerZ % this.segmentLength) / this.segmentLength;
-        const firstCurve = this.getSegmentCurve(firstAheadSeg) * 0.14;
+        const firstCurve = this.getSegmentCurve(firstAheadSeg) * 0.22;
 
         let curveX = 0;
         let dx = -(firstCurve * playerPercent);
@@ -702,7 +721,7 @@ class LanesGame {
 
             // Solo acumular curvatura por delante del jugador (con inicialización fraccionaria sin saltos)
             if (segZ > this.playerZ) {
-                dx += this.getSegmentCurve(segIndex) * 0.14;
+                dx += this.getSegmentCurve(segIndex) * 0.22;
                 curveX += dx;
             }
 
@@ -833,14 +852,14 @@ class LanesGame {
                 }
             });
 
-            // Autos Rivales de F1 (Interpolados cuadro a cuadro)
+            // Autos Rivales de F1 (Interpolados cuadro a cuadro, mismo porte que el jugador)
             const playerCarY = vm.carY;
             this.rivals.forEach((rival) => {
                 if (rival.z >= segMinZ && rival.z < segMaxZ) {
                     const p = interpAtZ(rival.z);
                     const rx = p.x + rival.x * p.rw;
                     const ry = p.y;
-                    const carScale = p.scale * 0.92 * vm.objScaleFactor;
+                    const carScale = p.scale * 0.98 * vm.rivalScaleFactor;
                     const tilt = rival.wobble > 0 ? Math.sin(rival.wobble * 0.45) * 0.35 : 0;
 
                     if (ry >= playerCarY) {
@@ -957,14 +976,14 @@ class LanesGame {
         ctx.arc(w * 0.8, horizonY * 0.35, 38, 0, Math.PI * 2);
         ctx.fill();
 
-        const curveOffset = this.getSegmentCurve(this.playerZ / this.segmentLength) * 2.5;
+        const skyShift = this.skyOffset || 0;
 
-        // Cordillera chilena de fondo
+        // Cordillera chilena de fondo (se desplaza al doblar curvas)
         ctx.fillStyle = track.mountainColor;
         ctx.beginPath();
         ctx.moveTo(0, horizonY);
         for (let x = -50; x <= w + 50; x += 60) {
-            const my = horizonY - 45 - Math.sin((x + curveOffset) * 0.012) * 35 - Math.cos(x * 0.02) * 20;
+            const my = horizonY - 45 - Math.sin((x + skyShift) * 0.012) * 35 - Math.cos((x + skyShift * 0.7) * 0.02) * 20;
             ctx.lineTo(x, my);
         }
         ctx.lineTo(w, horizonY);
@@ -975,7 +994,7 @@ class LanesGame {
         ctx.fillStyle = track.mountainPeak;
         ctx.beginPath();
         for (let x = -50; x <= w + 50; x += 60) {
-            const peakY = horizonY - 45 - Math.sin((x + curveOffset) * 0.012) * 35 - Math.cos(x * 0.02) * 20;
+            const peakY = horizonY - 45 - Math.sin((x + skyShift) * 0.012) * 35 - Math.cos((x + skyShift * 0.7) * 0.02) * 20;
             if (peakY < horizonY - 55) {
                 ctx.moveTo(x - 20, peakY + 18);
                 ctx.lineTo(x, peakY);
